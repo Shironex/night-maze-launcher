@@ -134,7 +134,7 @@ export function deriveView(input: ViewInput): View {
       notice: {
         tone: 'warn',
         icon: 'warning',
-        text: error,
+        text: sentence(error),
         dim: `Version ${current} still starts.`,
         actions: [
           ...(remote.kind === 'update_available'
@@ -267,7 +267,7 @@ function firstRunView(snapshot: Snapshot, checking: boolean, error: string | nul
         ? {
             tone: 'warn',
             icon: 'warning',
-            text: error,
+            text: sentence(error),
             dim: 'Nothing was installed.',
             actions: [{ label: 'Dismiss', action: { type: 'clear_error' } }],
           }
@@ -328,6 +328,11 @@ function firstRunView(snapshot: Snapshot, checking: boolean, error: string | nul
     cta: disabled(checking ? 'checking' : 'not checked'),
     secondary: checking ? undefined : retry,
   };
+}
+
+/** Text from the Rust side as a sentence: it arrives without a final full stop. */
+function sentence(text: string): string {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 
 /** The newest of the launcher's own notices, as a notice line. */

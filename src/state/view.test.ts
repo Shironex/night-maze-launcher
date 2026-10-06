@@ -160,7 +160,7 @@ describe('deriveView', () => {
     );
     expect(refused.notice).toMatchObject({
       tone: 'warn',
-      text: 'The download does not match its checksum, so it was not installed',
+      text: 'The download does not match its checksum, so it was not installed.',
       dim: 'Version 0.9.0 still starts.',
     });
     expect(refused.notice?.actions[0]).toEqual({ label: 'Try again', action: { type: 'install' } });

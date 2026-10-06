@@ -478,7 +478,7 @@ button:disabled {
   position: absolute;
   left: 1.2em;
   top: 1.7em;
-  right: 9em;
+  right: 7.4em;
   display: grid;
   gap: 0.25em;
 }
@@ -635,7 +635,7 @@ button.rel:hover {
 .cta {
   position: relative;
   overflow: hidden;
-  min-width: 12.4em;
+  min-width: 14.6em;
   height: 4.4em;
   border-radius: 1em;
   padding: 0 1.4em 0 0.8em;
@@ -738,7 +738,7 @@ button.rel:hover {
   height: 40em;
   max-height: calc(100% - 4em);
   display: grid;
-  grid-template-columns: 15.6em minmax(0, 1fr);
+  grid-template-columns: 17.6em minmax(0, 1fr);
   background: var(--l-deep);
   border: 1px solid var(--l-slate);
   border-radius: 1.2em;
