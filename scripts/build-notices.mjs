@@ -1,0 +1,104 @@
+// Assembles THIRD-PARTY-NOTICES.txt for the game package from the licence files
+// of the libraries that are linked into night_maze.
+//
+//   node launcher/scripts/build-notices.mjs --deps build/release/_deps [--out THIRD-PARTY-NOTICES.txt]
+//
+// The licence texts are copied from the downloaded sources, never typed by
+// hand. Run it again after a dependency version changes in
+// cmake/Dependencies.cmake and commit the result. doctest is left out: it is
+// only linked into the test program, which is not shipped.
+
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+function argument(name, fallback) {
+  const index = process.argv.indexOf(`--${name}`);
+  return index === -1 ? fallback : process.argv[index + 1];
+}
+
+const deps = argument('deps');
+if (!deps) {
+  console.error('usage: build-notices.mjs --deps <build dir>/_deps [--out <file>]');
+  process.exit(2);
+}
+const out = resolve(argument('out', join(repoRoot, 'THIRD-PARTY-NOTICES.txt')));
+
+/** The version a dependency is pinned to, read from cmake/Dependencies.cmake. */
+function pinnedTag(repository) {
+  const cmake = readFileSync(join(repoRoot, 'cmake', 'Dependencies.cmake'), 'utf8');
+  const start = cmake.indexOf(repository);
+  if (start === -1) return 'unknown version';
+  const match = /GIT_TAG\s+(\S+)/.exec(cmake.slice(start));
+  return match ? match[1] : 'unknown version';
+}
+
+/** The first comment block of a C header, where generated files keep their licence. */
+function leadingComment(file) {
+  const text = readFileSync(file, 'utf8');
+  const start = text.indexOf('/*');
+  const end = text.indexOf('*/', start);
+  return start === -1 || end === -1 ? '' : text.slice(start, end + 2);
+}
+
+function read(file) {
+  if (!existsSync(file)) {
+    console.error(`missing licence file: ${file}`);
+    process.exit(1);
+  }
+  return readFileSync(file, 'utf8').replace(/\r\n/g, '\n').trim();
+}
+
+const sections = [
+  {
+    name: `GLFW ${pinnedTag('glfw/glfw.git')}`,
+    url: 'https://www.glfw.org',
+    text: read(join(deps, 'glfw-src', 'LICENSE.md')),
+  },
+  {
+    name: `GLM ${pinnedTag('g-truc/glm.git')}`,
+    url: 'https://github.com/g-truc/glm',
+    text: read(join(deps, 'glm-src', 'copying.txt')),
+  },
+  {
+    name: `Dear ImGui ${pinnedTag('ocornut/imgui.git')}`,
+    url: 'https://github.com/ocornut/imgui',
+    text: read(join(deps, 'imgui-src', 'LICENSE.txt')),
+  },
+  {
+    name: `stb_image (stb commit ${pinnedTag('nothings/stb.git')})`,
+    url: 'https://github.com/nothings/stb',
+    text: read(join(deps, 'stb-src', 'LICENSE')),
+  },
+  {
+    name: 'GLAD generated OpenGL loader (external/glad)',
+    url: 'https://github.com/Dav1dde/glad',
+    text: [
+      'Notice at the top of external/glad/include/glad/gl.h:',
+      leadingComment(join(repoRoot, 'external', 'glad', 'include', 'glad', 'gl.h')),
+      '',
+      'Notice at the top of external/glad/include/KHR/khrplatform.h:',
+      leadingComment(join(repoRoot, 'external', 'glad', 'include', 'KHR', 'khrplatform.h')),
+    ].join('\n'),
+  },
+  {
+    name: 'Atkinson Hyperlegible (assets/fonts/AtkinsonHyperlegible-Regular.ttf)',
+    url: 'https://github.com/googlefonts/atkinson-hyperlegible',
+    text: read(join(repoRoot, 'assets', 'fonts', 'OFL.txt')),
+  },
+];
+
+const rule = '='.repeat(78);
+const body = [
+  'Night Maze: third-party notices',
+  '',
+  'Night Maze contains the following third-party software and material. Each is',
+  'used under the licence printed below it.',
+  '',
+  ...sections.flatMap(section => [rule, section.name, section.url, rule, '', section.text, '']),
+].join('\n');
+
+writeFileSync(out, body.replace(/\n{3,}/g, '\n\n').trimEnd() + '\n');
+console.log(`wrote ${out} (${sections.length} sections)`);
