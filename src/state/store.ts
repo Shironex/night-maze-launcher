@@ -28,6 +28,10 @@ function message(error: unknown): string {
 }
 
 export const useLauncher = create<LauncherStore>((set, get) => {
+  // React runs effects twice in development. One subscription and one update
+  // check are enough.
+  let started = false;
+
   const check = async () => {
     set({ checking: true });
     try {
@@ -73,6 +77,8 @@ export const useLauncher = create<LauncherStore>((set, get) => {
     fatal: null,
 
     start: async () => {
+      if (started) return;
+      started = true;
       if (import.meta.env.DEV) {
         const { previewFromLocation } = await import('../dev/preview');
         const preview = previewFromLocation();

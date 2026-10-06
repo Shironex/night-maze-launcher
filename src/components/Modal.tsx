@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 const FOCUSABLE = 'button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])';
@@ -21,11 +21,16 @@ export function Modal({ label, onClose, side, children }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
 
+  // The element that had the focus when the dialog was opened. Read once while
+  // rendering, before the effect below moves the focus into the dialog.
+  const [opener] = useState(() =>
+    document.activeElement instanceof HTMLElement ? document.activeElement : null
+  );
+
   useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeButton.current?.focus();
     return () => opener?.focus();
-  }, []);
+  }, [opener]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
