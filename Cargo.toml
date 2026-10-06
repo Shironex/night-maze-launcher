@@ -1,0 +1,62 @@
+# Night Maze launcher: Rust workspace.
+#
+# `crates/core` holds every rule of the launcher (manifest, download, install,
+# state, launch, rollback) and knows nothing about Tauri, so it is tested without
+# a window. `src-tauri` is the thin shell that turns it into commands and events.
+
+[workspace]
+resolver = "3"
+members = ["crates/core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+authors = ["Shironex"]
+repository = "https://github.com/Shironex/night-maze"
+publish = false
+
+[workspace.dependencies]
+night-maze-launcher-core = { path = "crates/core" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+# `process` starts the game, `time` is the 15 second start watch, `fs` and
+# `io-util` stream the download to disk.
+tokio = { version = "1", features = ["rt", "sync", "time", "fs", "io-util", "process", "macros"] }
+# rustls instead of the system TLS library, so the behaviour is the same on both
+# systems. No cookies, no charset decoding, no blocking client.
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "system-proxy"] }
+url = "2.5"
+sha2 = "0.10"
+# Deflate is the only method the release zips use.
+zip = { version = "6", default-features = false, features = ["deflate"] }
+tempfile = "3"
+
+tauri = { version = "2.11", features = [] }
+tauri-build = "2"
+tauri-plugin-single-instance = "2.4"
+# Exact pins: these are release candidates, and a floating one would generate
+# different bindings on two machines.
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "=0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+await_holding_lock = "warn"
+unwrap_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = "s"
+panic = "abort"
