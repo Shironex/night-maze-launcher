@@ -7,7 +7,7 @@ import { Modal } from './Modal';
 type Section = 'updates' | 'about';
 
 const SECTIONS: { id: Section; label: string; icon: IconName }[] = [
-  { id: 'updates', label: 'Downloads & updates', icon: 'download' },
+  { id: 'updates', label: 'Updates', icon: 'download' },
   { id: 'about', label: 'About', icon: 'info' },
 ];
 
