@@ -43,12 +43,12 @@ function leadingComment(file) {
   return start === -1 || end === -1 ? '' : text.slice(start, end + 2);
 }
 
-function read(file) {
+function read(file, encoding = 'utf8') {
   if (!existsSync(file)) {
     console.error(`missing licence file: ${file}`);
     process.exit(1);
   }
-  return readFileSync(file, 'utf8').replace(/\r\n/g, '\n').trim();
+  return readFileSync(file, encoding).replace(/\r\n/g, '\n').trim();
 }
 
 const sections = [
@@ -71,6 +71,38 @@ const sections = [
     name: `stb_image (stb commit ${pinnedTag('nothings/stb.git')})`,
     url: 'https://github.com/nothings/stb',
     text: read(join(deps, 'stb-src', 'LICENSE')),
+  },
+  {
+    name: `RmlUi ${pinnedTag('mikke89/RmlUi.git')}`,
+    url: 'https://github.com/mikke89/RmlUi',
+    text: read(join(deps, 'rmlui-src', 'LICENSE.txt')),
+  },
+  {
+    name: 'Containers that are part of RmlUi (itlib, robin_hood)',
+    url: 'https://github.com/mikke89/RmlUi/tree/master/Include/RmlUi/Core/Containers',
+    text: read(join(deps, 'rmlui-src', 'Include', 'RmlUi', 'Core', 'Containers', 'LICENSE.txt')),
+  },
+  {
+    name: `FreeType ${pinnedTag('freetype/freetype.git')}`,
+    url: 'https://freetype.org',
+    // FreeType is used under the FreeType License (FTL), which asks for this credit
+    // line. FTL.TXT is stored in Latin-1, not in UTF-8.
+    text: [
+      'Portions of this software are copyright (C) 2026 The FreeType Project',
+      '(www.freetype.org). All rights reserved.',
+      '',
+      'FreeType is used under the FreeType License (FTL), docs/FTL.TXT in its source:',
+      '',
+      read(join(deps, 'freetype-src', 'docs', 'FTL.TXT'), 'latin1'),
+    ].join('\n'),
+  },
+  {
+    name: 'zlib, the copy inside the FreeType source (src/gzip)',
+    url: 'https://zlib.net',
+    text: [
+      'Notice at the top of src/gzip/zlib.h in the FreeType source:',
+      leadingComment(join(deps, 'freetype-src', 'src', 'gzip', 'zlib.h')),
+    ].join('\n'),
   },
   {
     name: 'GLAD generated OpenGL loader (external/glad)',
