@@ -1,0 +1,31 @@
+[package]
+name = "night-maze-launcher"
+description = "Night Maze launcher: the window around the launcher rules"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+default-run = "night-maze-launcher"
+
+[lib]
+# A library, so the command list and the generated bindings can be tested
+# without opening a window. The binary is a three line entry point.
+name = "night_maze_launcher_lib"
+crate-type = ["lib"]
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+night-maze-launcher-core = { workspace = true, features = ["specta"] }
+serde = { workspace = true }
+tauri = { workspace = true }
+tauri-plugin-single-instance = { workspace = true }
+specta = { workspace = true }
+specta-typescript = { workspace = true }
+tauri-specta = { workspace = true }
+
+[lints]
+workspace = true
