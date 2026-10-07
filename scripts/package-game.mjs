@@ -1,8 +1,12 @@
 // Packs one game build into the zip a release publishes.
 //
-//   node launcher/scripts/package-game.mjs --exe build/release/Release/night_maze.exe \
-//     --version 0.9.0 --out <folder> [--platform windows-x64] \
-//     [--assets assets] [--notices THIRD-PARTY-NOTICES.txt]
+//   node <launcher checkout>/scripts/package-game.mjs \
+//     --exe build/release/Release/night_maze.exe --version 0.9.0 --out <folder> \
+//     [--platform windows-x64] [--assets assets] [--notices THIRD-PARTY-NOTICES.txt]
+//
+// Run it from the root of the game repository: `--assets` and `--notices`
+// default to `assets` and `THIRD-PARTY-NOTICES.txt` in the current working
+// directory. From anywhere else, pass both.
 //
 // The zip holds the executable, the assets folder and the notices file:
 //
@@ -11,7 +15,7 @@
 //     assets/...
 //     THIRD-PARTY-NOTICES.txt
 //
-// Assets are read from the repository, not from the build directory: on macOS
+// Assets are read from the game repository, not from the build directory: on macOS
 // the build directory only holds a link to them, and on Windows its copy can
 // contain files that were deleted from the repository since.
 //
@@ -20,11 +24,10 @@
 // release workflow does it with build-feed.mjs. Both files are then signed
 // (manifest.json.sig, news.json.sig) with the development key. For a github.com
 // address pass `--sign-key <key>` (the password comes from the environment,
-// see sign-file.mjs) or `--no-sign`. See launcher/README.md.
+// see sign-file.mjs) or `--no-sign`. See docs/development.md.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, resolve } from 'node:path';
 import {
   argument,
   buildManifest,
@@ -36,8 +39,6 @@ import {
 } from './lib/feed.mjs';
 import { feedSigningKey, signFeed } from './lib/sign.mjs';
 import { createZip } from './lib/zip.mjs';
-
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 /** Files that are never part of a package, wherever they are. */
 const SKIPPED = new Set(['.DS_Store', 'Thumbs.db', 'imgui.ini']);
@@ -89,8 +90,8 @@ if (baseUrl) {
 }
 
 const platform = argument('platform', defaultPlatform());
-const assets = resolve(argument('assets', join(repoRoot, 'assets')));
-const notices = resolve(argument('notices', join(repoRoot, 'THIRD-PARTY-NOTICES.txt')));
+const assets = resolve(argument('assets', 'assets'));
+const notices = resolve(argument('notices', 'THIRD-PARTY-NOTICES.txt'));
 for (const [what, path] of [
   ['executable', resolve(exe)],
   ['assets folder', assets],

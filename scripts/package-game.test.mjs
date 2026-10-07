@@ -1,4 +1,4 @@
-// Run with: node --test launcher/scripts
+// Run with: pnpm test:scripts
 //
 // Runs the packager on a tiny fake game folder. Signing starts the real Tauri
 // CLI; without it (no `pnpm install`) the signing test is skipped.
@@ -58,6 +58,34 @@ test('a local feed is signed with the dev key', { skip }, () => {
       const text = readFileSync(path, 'utf8');
       assert.ok(text.length > 0 && isBase64(text), `${name} is not base64`);
     }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('assets and notices default to the current working directory', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'nm-package-'));
+  try {
+    // Laid out like the game repository, which is where the script is run.
+    fakeGame(directory);
+    writeFileSync(join(directory, 'THIRD-PARTY-NOTICES.txt'), 'fake notices');
+    const result = spawnSync(
+      process.execPath,
+      [
+        script,
+        '--exe',
+        'night_maze.exe',
+        '--version',
+        '0.9.0',
+        '--platform',
+        'windows-x64',
+        '--out',
+        'out',
+      ],
+      { cwd: directory, encoding: 'utf8' }
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /NightMaze-0\.9\.0-windows-x64\.zip: 3 files/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
