@@ -6,7 +6,7 @@
 
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 
-use crate::commands;
+use crate::{commands, updater};
 
 /// The one builder the handler, the events and the bindings all come from.
 ///
@@ -23,10 +23,13 @@ pub(crate) fn builder() -> Builder<tauri::Wry> {
             commands::set_check_on_start,
             commands::dismiss_notice,
             commands::open_folder,
+            updater::check_launcher_update,
+            updater::install_launcher_update,
         ])
         .events(collect_events![
             commands::InstallProgress,
-            commands::SnapshotChanged
+            commands::SnapshotChanged,
+            updater::LauncherUpdateProgress
         ])
 }
 

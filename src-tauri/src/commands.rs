@@ -13,6 +13,7 @@ use specta::Type;
 use tauri::{AppHandle, State};
 use tauri_specta::Event;
 
+use crate::updater::SelfUpdate;
 use crate::{AppState, log};
 
 /// Sent while a version is being downloaded and installed.
@@ -32,6 +33,15 @@ pub enum Folder {
     Install,
     /// The folder with the game log.
     Logs,
+}
+
+/// Refuse to start something the launcher's own update would cut off: its
+/// installer ends this process as soon as the download is checked.
+fn refuse_during_self_update(own: &SelfUpdate) -> Result<(), String> {
+    if own.is_installing() {
+        return Err("The launcher is updating itself and restarts when that is done".to_owned());
+    }
+    Ok(())
 }
 
 /// What the window should show now. Reads local state only.
@@ -60,7 +70,9 @@ pub async fn check_for_updates(state: State<'_, AppState>) -> Result<Snapshot, S
 pub async fn install_update(
     app: AppHandle,
     state: State<'_, AppState>,
+    own: State<'_, SelfUpdate>,
 ) -> Result<Snapshot, String> {
+    refuse_during_self_update(&own)?;
     let launcher = state.launcher()?;
     let report = |progress: Progress| {
         let _ = InstallProgress(progress).emit(&app);
@@ -84,7 +96,12 @@ pub async fn install_update(
 /// Start the installed version. Answers as soon as the game process exists.
 #[tauri::command]
 #[specta::specta]
-pub async fn launch_game(app: AppHandle, state: State<'_, AppState>) -> Result<Snapshot, String> {
+pub async fn launch_game(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    own: State<'_, SelfUpdate>,
+) -> Result<Snapshot, String> {
+    refuse_during_self_update(&own)?;
     let launcher = Arc::clone(state.launcher()?);
     let watcher = Arc::clone(&launcher);
     let listener = Arc::new(move |snapshot: Snapshot| {
