@@ -109,15 +109,15 @@ The source moved here from the `launcher/` folder of the game repository, with i
 
 ## Built with
 
-| Part           | What                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Shell          | [Tauri](https://tauri.app) 2, with its updater and single instance plugins                                                      |
-| Core           | Rust, edition 2024, toolchain 1.97.1. HTTP with reqwest 0.13 on rustls and tokio, signatures with minisign-verify, sha2 and zip |
-| Window         | React 19, TypeScript 6, zustand 5 for state                                                                                     |
-| Styles         | Tailwind CSS 4                                                                                                                  |
-| Fonts          | Atkinson Hyperlegible Next, Atkinson Hyperlegible Mono and Cormorant Garamond, bundled through `@fontsource`                    |
-| Build          | Vite 8, pnpm 10                                                                                                                 |
-| Tests and lint | Vitest 5, the Node test runner for the scripts, `cargo test`, ESLint 10, Prettier 3, clippy and rustfmt                         |
+| Part           | What                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shell          | [Tauri](https://tauri.app) 2, with its updater and single instance plugins                                                                              |
+| Core           | Rust, edition 2024, toolchain 1.97.1. HTTP with reqwest 0.13 on rustls and tokio, signatures with minisign-verify, SHA-256 with sha2, archives with zip |
+| Window         | React 19, TypeScript 6, zustand 5 for state                                                                                                             |
+| Styles         | Tailwind CSS 4                                                                                                                                          |
+| Fonts          | Atkinson Hyperlegible Next, Atkinson Hyperlegible Mono and Cormorant Garamond, bundled through `@fontsource`                                            |
+| Build          | Vite 8, pnpm 10                                                                                                                                         |
+| Tests and lint | Vitest 5, the Node test runner for the scripts, `cargo test`, ESLint 10, Prettier 3, clippy and rustfmt                                                 |
 
 ## Development
 
