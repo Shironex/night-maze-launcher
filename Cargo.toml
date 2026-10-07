@@ -33,6 +33,15 @@ sha2 = "0.10"
 # Deflate is the only method the release zips use.
 zip = { version = "6", default-features = false, features = ["deflate"] }
 tempfile = "3"
+# The manifest signature check. `minisign-verify` and `base64` are the crates
+# and version lines `tauri-plugin-updater` verifies with, so a key pair made by
+# `pnpm tauri signer generate` is read here the same way.
+minisign-verify = "0.2"
+base64 = "0.22"
+# Tests only: signs fixtures with keys made inside the test. The 0.9 line is
+# the one the Tauri CLI signs with, so the fixtures have the format of the
+# real signatures.
+minisign = "0.9"
 
 tauri = { version = "2.11", features = [] }
 tauri-build = "2"
