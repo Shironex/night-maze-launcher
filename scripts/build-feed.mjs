@@ -3,14 +3,18 @@
 //   node launcher/scripts/build-feed.mjs --dir <folder with the zips> --version 0.9.0 \
 //     --base-url https://github.com/Shironex/night-maze/releases/download/v0.9.0/ \
 //     [--changelog CHANGELOG.md] [--extra news-extra.json] [--title "tag message"] \
-//     [--launcher-min 0.1.0] [--out <folder>]
+//     [--launcher-min 0.1.0] [--out <folder>] [--sign-key <key>] [--no-sign]
 //
 // `--dir` holds the packages made by package-game.mjs. Both files are written
-// to `--out`, which defaults to `--dir`.
+// to `--out`, which defaults to `--dir`, and signed (manifest.json.sig,
+// news.json.sig). For a github.com address `--sign-key` is required (the
+// password comes from the environment, see sign-file.mjs) unless `--no-sign`;
+// any other address is signed with the development key by default.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { argument, buildManifest, buildNews } from './lib/feed.mjs';
+import { argument, buildManifest, buildNews, flag } from './lib/feed.mjs';
+import { feedSigningKey, signFeed } from './lib/sign.mjs';
 
 const directory = argument('dir');
 const version = argument('version');
@@ -20,6 +24,13 @@ if (!directory || !version || !baseUrl) {
   process.exit(2);
 }
 const out = resolve(argument('out', directory));
+let signingKey;
+try {
+  signingKey = feedSigningKey({ baseUrl, signKey: argument('sign-key'), noSign: flag('no-sign') });
+} catch (error) {
+  console.error(error.message);
+  process.exit(2);
+}
 
 const changelogPath = argument('changelog');
 const changelog =
@@ -47,3 +58,9 @@ console.log(
   `manifest.json: version ${version}, platforms ${Object.keys(manifest.game).join(', ')}`
 );
 console.log(`news.json: ${news.updates.length} release(s)`);
+try {
+  signFeed(out, signingKey);
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}

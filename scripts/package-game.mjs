@@ -17,7 +17,10 @@
 //
 // For a local test of the launcher, add `--base-url http://127.0.0.1:8123/`:
 // manifest.json and news.json are then written next to the zip, exactly as the
-// release workflow does it with build-feed.mjs. See launcher/README.md.
+// release workflow does it with build-feed.mjs. Both files are then signed
+// (manifest.json.sig, news.json.sig) with the development key. For a github.com
+// address pass `--sign-key <key>` (the password comes from the environment,
+// see sign-file.mjs) or `--no-sign`. See launcher/README.md.
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -27,9 +30,11 @@ import {
   buildManifest,
   buildNews,
   executableName,
+  flag,
   isVersion,
   packageName,
 } from './lib/feed.mjs';
+import { feedSigningKey, signFeed } from './lib/sign.mjs';
 import { createZip } from './lib/zip.mjs';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -68,6 +73,21 @@ if (!isVersion(version)) {
   process.exit(2);
 }
 
+const baseUrl = argument('base-url');
+let signingKey = null;
+if (baseUrl) {
+  try {
+    signingKey = feedSigningKey({
+      baseUrl,
+      signKey: argument('sign-key'),
+      noSign: flag('no-sign'),
+    });
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
+  }
+}
+
 const platform = argument('platform', defaultPlatform());
 const assets = resolve(argument('assets', join(repoRoot, 'assets')));
 const notices = resolve(argument('notices', join(repoRoot, 'THIRD-PARTY-NOTICES.txt')));
@@ -98,7 +118,6 @@ const zip = createZip(entries);
 writeFileSync(zipPath, zip);
 console.log(`${zipPath}: ${entries.length} files, ${zip.length} bytes`);
 
-const baseUrl = argument('base-url');
 if (baseUrl) {
   const changelogPath = argument('changelog');
   const changelog =
@@ -115,4 +134,10 @@ if (baseUrl) {
   writeFileSync(join(outDirectory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   writeFileSync(join(outDirectory, 'news.json'), `${JSON.stringify(news, null, 2)}\n`);
   console.log(`manifest.json and news.json written for ${baseUrl}`);
+  try {
+    signFeed(outDirectory, signingKey);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
 }
