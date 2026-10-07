@@ -10,7 +10,7 @@ use std::time::Duration;
 use night_maze_launcher_core::{
     Activity, CoreError, Launcher, NoticeKind, Phase, Progress, Remote, Snapshot, State,
 };
-use support::{EXE, Release, Reply, TestServer, config};
+use support::{EXE, Release, Reply, Signer, TestServer, config};
 
 fn quiet(_progress: Progress) {}
 
@@ -422,9 +422,22 @@ async fn answers_that_are_not_a_manifest_count_as_offline() {
     let server = TestServer::start().await;
     let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
 
+    // Signed, so these two get past the signature and are refused for what
+    // they are.
+    for body in [
+        b"<html>Sign in to the hotel Wi-Fi</html>".as_slice(),
+        br#"{"schema":2,"version":"0.9.0"}"#.as_slice(),
+    ] {
+        server.route_signed("/manifest.json", body);
+        let snapshot = launcher.check().await;
+        assert!(
+            matches!(&snapshot.remote, Remote::Offline { reason } if reason.contains("not valid")),
+            "got {:?}",
+            snapshot.remote
+        );
+    }
+
     for reply in [
-        Reply::Body(b"<html>Sign in to the hotel Wi-Fi</html>".to_vec()),
-        Reply::Body(br#"{"schema":2,"version":"0.9.0"}"#.to_vec()),
         Reply::Status(404),
         Reply::Status(500),
         Reply::Redirect("http://example.com/manifest.json".to_owned()),
@@ -471,17 +484,18 @@ async fn redirects_on_loopback_are_followed_for_the_manifest_and_the_download() 
         "/download/game.zip",
         Reply::Redirect("/cdn/game.zip".to_owned()),
     );
-    server.route(
-        "/cdn/manifest.json",
-        Reply::Body(
-            release
-                .manifest(&server.url("/download/game.zip"))
-                .into_bytes(),
-        ),
-    );
+    let manifest = release.manifest(&server.url("/download/game.zip"));
+    server.route_signed("/cdn/manifest.json", manifest.as_bytes());
+    // The signature is asked for next to the address the launcher was given,
+    // not next to where the manifest was redirected to. It takes its own
+    // redirect, as a release download on GitHub does.
     server.route(
         "/manifest.json",
         Reply::Redirect(server.url("/cdn/manifest.json")),
+    );
+    server.route(
+        "/manifest.json.sig",
+        Reply::Redirect("/cdn/manifest.json.sig".to_owned()),
     );
     let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
 
@@ -496,13 +510,11 @@ async fn a_download_url_that_is_not_https_is_never_requested() {
     let root = tempfile::tempdir().expect("a temporary directory");
     let server = TestServer::start().await;
     let release = Release::stub("0.9.0", 0, 0);
-    server.route(
+    server.route_signed(
         "/manifest.json",
-        Reply::Body(
-            release
-                .manifest("http://example.com/NightMaze-0.9.0.zip")
-                .into_bytes(),
-        ),
+        release
+            .manifest("http://example.com/NightMaze-0.9.0.zip")
+            .as_bytes(),
     );
     let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
     launcher.check().await;
@@ -617,4 +629,218 @@ async fn a_version_folder_deleted_by_hand_is_noticed_on_the_next_start() {
             .count(),
         0
     );
+}
+
+/// The sentence of [`CoreError::BadSignature`], as the window and the log get it.
+fn is_bad_signature(remote: &Remote) -> bool {
+    matches!(remote, Remote::Offline { reason } if *reason == CoreError::BadSignature.to_string())
+}
+
+fn count(requests: &[String], path: &str) -> usize {
+    requests.iter().filter(|seen| *seen == path).count()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_manifest_without_a_signature_is_ignored_and_the_old_version_still_starts() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start().await;
+    server.publish(&Release::stub("0.9.0", 0, 0));
+    let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
+    check_and_install(&launcher).await;
+
+    server.publish(&Release::stub("0.9.1", 0, 0));
+    server.route("/manifest.json.sig", Reply::Status(404));
+    let snapshot = launcher.check().await;
+
+    assert!(
+        matches!(&snapshot.remote, Remote::Offline { reason } if reason.contains("verify")),
+        "got {:?}",
+        snapshot.remote
+    );
+    assert_eq!(snapshot.notes, None, "nothing of the manifest is shown");
+    assert!(matches!(
+        launcher.install(&quiet).await,
+        Err(CoreError::NotInstalled)
+    ));
+    assert!(
+        !server
+            .requests()
+            .contains(&"/NightMaze-0.9.1.zip".to_owned()),
+        "nothing is downloaded without a signature"
+    );
+    assert!(!launcher.layout().version_dir("0.9.1").exists());
+
+    let after = play(&launcher).await;
+    assert_eq!(after.current.as_deref(), Some("0.9.0"));
+    assert!(saved_state(&launcher).has_good_run("0.9.0"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_manifest_changed_after_signing_is_ignored() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start().await;
+    let release = Release::stub("0.9.0", 0, 0);
+    server.publish(&release);
+    // The signature stays the one of the published manifest. This one sends
+    // the player to another zip.
+    server.route(
+        "/manifest.json",
+        Reply::Body(
+            release
+                .manifest(&server.url("/Malware-0.9.0.zip"))
+                .into_bytes(),
+        ),
+    );
+    let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
+
+    let snapshot = launcher.check().await;
+
+    assert!(
+        is_bad_signature(&snapshot.remote),
+        "got {:?}",
+        snapshot.remote
+    );
+    assert!(matches!(
+        launcher.install(&quiet).await,
+        Err(CoreError::NotInstalled)
+    ));
+    let requests = server.requests();
+    assert_eq!(
+        count(&requests, "/manifest.json"),
+        2,
+        "tried once more, then given up"
+    );
+    assert!(!requests.iter().any(|path| path.ends_with(".zip")));
+    assert_eq!(
+        launcher.snapshot().feed,
+        None,
+        "no notes without a manifest"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_manifest_signed_with_an_unknown_key_is_ignored() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start().await;
+    let release = Release::stub("0.9.0", 0, 0);
+    server.publish(&release);
+    let manifest = release.manifest(&server.url("/NightMaze-0.9.0.zip"));
+    let stranger = Signer::new();
+    server.route(
+        "/manifest.json.sig",
+        Reply::Body(stranger.sign(manifest.as_bytes()).into_bytes()),
+    );
+    let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
+
+    let snapshot = launcher.check().await;
+
+    assert!(
+        is_bad_signature(&snapshot.remote),
+        "got {:?}",
+        snapshot.remote
+    );
+    assert!(matches!(
+        launcher.install(&quiet).await,
+        Err(CoreError::NotInstalled)
+    ));
+
+    // The same pair is fine for a launcher that trusts that key as its second.
+    let mut settings = config(root.path(), &server);
+    settings.trusted_keys.push(stranger.public_key());
+    let trusting = Launcher::open(settings).expect("the launcher opens");
+    assert!(matches!(
+        trusting.check().await.remote,
+        Remote::UpdateAvailable { .. }
+    ));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_manifest_and_a_signature_of_two_releases_agree_on_the_second_try() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start().await;
+    let old = Release::stub("0.9.0", 0, 0);
+    let old_signature = server.sign(old.manifest(&server.url("/NightMaze-0.9.0.zip")).as_bytes());
+    // 0.9.1 is published, and the first request for the signature still gets
+    // the one of 0.9.0.
+    server.publish(&Release::stub("0.9.1", 0, 0));
+    server.route_once(
+        "/manifest.json.sig",
+        Reply::Body(old_signature.into_bytes()),
+    );
+    let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
+
+    let snapshot = launcher.check().await;
+
+    assert!(
+        matches!(&snapshot.remote, Remote::UpdateAvailable { version, .. } if version == "0.9.1"),
+        "got {:?}",
+        snapshot.remote
+    );
+    let requests = server.requests();
+    assert_eq!(count(&requests, "/manifest.json"), 2);
+    assert_eq!(count(&requests, "/manifest.json.sig"), 2);
+    assert_eq!(
+        launcher
+            .install(&quiet)
+            .await
+            .expect("the install works")
+            .current
+            .as_deref(),
+        Some("0.9.1")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn notes_without_a_valid_signature_are_dropped_and_the_check_still_works() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start().await;
+    let launcher = Launcher::open(config(root.path(), &server)).expect("the launcher opens");
+    let cache = launcher.layout().cached_feed();
+    let forged = br#"{"schema":1,"updates":[{"version":"0.9.0","title":"Forged notes"}]}"#;
+
+    // No signature at all.
+    server.publish(&Release::stub("0.9.0", 0, 0));
+    server.route("/news.json.sig", Reply::Status(404));
+    let snapshot = launcher.check().await;
+    assert!(
+        matches!(&snapshot.remote, Remote::UpdateAvailable { version, .. } if version == "0.9.0"),
+        "got {:?}",
+        snapshot.remote
+    );
+    assert_eq!(snapshot.feed, None);
+    assert!(!cache.exists(), "an unverified feed is never cached");
+
+    // A feed that was changed after signing.
+    server.publish(&Release::stub("0.9.0", 0, 0));
+    server.route("/news.json", Reply::Body(forged.to_vec()));
+    let snapshot = launcher.check().await;
+    assert!(matches!(snapshot.remote, Remote::UpdateAvailable { .. }));
+    assert_eq!(snapshot.feed, None);
+    assert!(!cache.exists());
+
+    // A good feed is shown and kept.
+    server.publish(&Release::stub("0.9.0", 0, 0));
+    let snapshot = launcher.check().await;
+    assert_eq!(
+        snapshot.feed.expect("the feed was read").updates[0].title,
+        "Notes of 0.9.0"
+    );
+    let kept = std::fs::read(&cache).expect("the feed is cached");
+
+    // A forged feed after it does not replace it, in the window or on disk.
+    server.publish(&Release::stub("0.9.1", 0, 0));
+    server.route(
+        "/news.json.sig",
+        Reply::Body(Signer::new().sign(forged).into_bytes()),
+    );
+    server.route("/news.json", Reply::Body(forged.to_vec()));
+    let snapshot = launcher.check().await;
+    assert!(
+        matches!(&snapshot.remote, Remote::UpdateAvailable { version, .. } if version == "0.9.1")
+    );
+    assert_eq!(
+        snapshot.feed.expect("the last good feed stays").updates[0].title,
+        "Notes of 0.9.0"
+    );
+    assert_eq!(std::fs::read(&cache).expect("the cache"), kept);
 }

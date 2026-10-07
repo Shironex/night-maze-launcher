@@ -38,6 +38,11 @@ pub enum CoreError {
     #[error("The update information is not valid: {0}")]
     BadManifest(String),
 
+    /// The manifest or the notes feed has no signature by a trusted key, or
+    /// the signature is over other bytes than the ones that arrived.
+    #[error("The update information is not signed with a Night Maze key, so it was ignored")]
+    BadSignature,
+
     /// The manifest has no build for this operating system.
     #[error("This release has no build for {0}")]
     NoBuildForPlatform(String),

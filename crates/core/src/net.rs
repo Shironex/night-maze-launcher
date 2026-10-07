@@ -1,7 +1,8 @@
 //! Every network call of the launcher.
 //!
-//! Three kinds of request exist: the manifest, the notes feed and the game zip.
-//! All go through one client whose rules do not depend on the caller:
+//! Three kinds of file are requested: the manifest and the notes feed, each
+//! together with its signature, and the game zip. All requests go through one
+//! client whose rules do not depend on the caller:
 //!
 //! - **https only.** Plain http is accepted for a loopback address and nothing
 //!   else, which is what lets tests and local runs use a server on 127.0.0.1.
@@ -9,7 +10,7 @@
 //!   redirect to another host, so the rule is applied to each redirect target,
 //!   and a redirect from https to http is refused even when it points at
 //!   loopback.
-//! - **Bounded.** Text answers have a byte limit, the manifest has a short
+//! - **Bounded.** Small answers have a byte limit, the manifest has a short
 //!   total timeout, and a download fails when no bytes arrive for a while.
 
 use std::path::Path;
@@ -32,10 +33,12 @@ pub const FEED_ENV: &str = "NIGHT_MAZE_LAUNCHER_FEED";
 /// How many redirects one request may follow.
 pub const MAX_REDIRECTS: usize = 5;
 
-/// How long the manifest and the feed may take, from request to last byte.
+/// How long the manifest, the feed or a signature may take, from request to
+/// last byte.
 pub const TEXT_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// The largest manifest or feed that is read. Both are a few kilobytes.
+/// The largest manifest, feed or signature that is read. All are a few
+/// kilobytes at most.
 pub const MAX_TEXT_BYTES: usize = 512 * 1024;
 
 /// How long a download may deliver no bytes before it is given up.
@@ -87,6 +90,17 @@ pub fn feed_url(manifest_url: &Url, declared: Option<&str>) -> Option<Url> {
         return Some(joined);
     }
     manifest_url.join("news.json").ok()
+}
+
+/// The URL of the signature of the file at `url`: the same URL with `.sig`
+/// added to the path, which is where `tauri signer sign` puts it on disk.
+///
+/// Scheme and host stay the same, so a URL that passed the https rule still
+/// passes it.
+pub fn signature_url(url: &Url) -> Url {
+    let mut signature = url.clone();
+    signature.set_path(&format!("{}.sig", url.path()));
+    signature
 }
 
 fn is_allowed(url: &Url) -> bool {
@@ -149,17 +163,20 @@ pub fn client(launcher_version: &str) -> Result<reqwest::Client> {
         })
 }
 
-/// Fetch a small text document within [`TEXT_TIMEOUT`].
+/// Fetch a small file within [`TEXT_TIMEOUT`], as the bytes that arrived.
+///
+/// Bytes and not text on purpose: a signature is over the exact bytes of the
+/// file, and decoding them first could change what is checked.
 ///
 /// # Errors
 ///
 /// [`CoreError::Http`] for a transport failure, a timeout, a status that is not
 /// 2xx or a body over [`MAX_TEXT_BYTES`].
-pub async fn fetch_text(
+pub async fn fetch_bytes(
     client: &reqwest::Client,
     url: &Url,
     operation: &'static str,
-) -> Result<String> {
+) -> Result<Vec<u8>> {
     let failed = |message: String| CoreError::Http { operation, message };
 
     let read = async {
@@ -187,7 +204,7 @@ pub async fn fetch_text(
                 )));
             }
         }
-        Ok(String::from_utf8_lossy(&body).into_owned())
+        Ok(body)
     };
 
     tokio::time::timeout(TEXT_TIMEOUT, read)
@@ -401,6 +418,22 @@ mod tests {
             feed_url(&manifest, Some("http://example.com/feed.json")).map(String::from),
             Some("https://github.com/o/r/releases/latest/download/news.json".to_owned()),
             "an http feed is ignored in favour of the default"
+        );
+    }
+
+    #[test]
+    fn the_signature_sits_next_to_its_file() {
+        assert_eq!(
+            signature_url(&url(
+                "https://github.com/o/r/releases/latest/download/manifest.json"
+            ))
+            .as_str(),
+            "https://github.com/o/r/releases/latest/download/manifest.json.sig"
+        );
+        assert_eq!(
+            signature_url(&url("http://127.0.0.1:8123/news.json?cache=1")).as_str(),
+            "http://127.0.0.1:8123/news.json.sig?cache=1",
+            "the query stays behind the path"
         );
     }
 

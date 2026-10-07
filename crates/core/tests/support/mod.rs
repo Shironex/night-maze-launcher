@@ -1,18 +1,26 @@
-//! What the flow tests share: a loopback HTTP server and release fixtures.
+//! What the flow tests share: a loopback HTTP server, release fixtures and a
+//! key that signs them.
 //!
 //! The server is deliberately not a real HTTP implementation. It reads one
 //! request, answers with whatever the test registered for that path, and
 //! closes the connection.
+//!
+//! A fixture manifest names a zip on the server's port, and the port is only
+//! known once the server runs. So nothing is signed ahead of time: every
+//! server makes a throwaway key pair, signs what it publishes, and [`config`]
+//! trusts exactly that key.
 
 #![allow(dead_code, reason = "each test uses a different subset")]
 
-use std::collections::HashMap;
-use std::io::Write;
+use std::collections::{HashMap, VecDeque};
+use std::io::{Cursor, Write};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use night_maze_launcher_core::{Config, Layout, Version};
 use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -57,12 +65,53 @@ impl Reply {
     }
 }
 
+/// A throwaway signing key, in the formats of the Tauri CLI: what
+/// `tauri signer generate` and `tauri signer sign` write is base64 of the
+/// minisign text.
+pub(crate) struct Signer {
+    pair: minisign::KeyPair,
+}
+
+impl Signer {
+    /// A new key pair. Without a password: the password only protects the
+    /// private key on disk, and applying it is slow.
+    pub(crate) fn new() -> Self {
+        Self {
+            pair: minisign::KeyPair::generate_unencrypted_keypair().expect("a key pair"),
+        }
+    }
+
+    /// The content of the `.pub` file of this key.
+    pub(crate) fn public_key(&self) -> String {
+        let text = self.pair.pk.to_box().expect("a public key box").to_string();
+        STANDARD.encode(text)
+    }
+
+    /// The content of the `.sig` file for `bytes`.
+    pub(crate) fn sign(&self, bytes: &[u8]) -> String {
+        let signature = minisign::sign(
+            None,
+            &self.pair.sk,
+            Cursor::new(bytes),
+            Some("timestamp:1791280496\tfile:fixture"),
+            Some("signature from tauri secret key"),
+        )
+        .expect("a signature");
+        STANDARD.encode(signature.to_string())
+    }
+}
+
 type Routes = Arc<Mutex<HashMap<String, Reply>>>;
+
+/// Replies that are given once, in order, before the lasting route of a path.
+type FirstReplies = Arc<Mutex<HashMap<String, VecDeque<Reply>>>>;
 
 /// A server on an ephemeral loopback port. It stops when it is dropped.
 pub(crate) struct TestServer {
     address: SocketAddr,
     routes: Routes,
+    first: FirstReplies,
+    signer: Signer,
     requests: Arc<Mutex<Vec<String>>>,
     task: tokio::task::JoinHandle<()>,
 }
@@ -82,21 +131,34 @@ impl TestServer {
             .local_addr()
             .expect("the bound address is readable");
         let routes: Routes = Arc::default();
+        let first: FirstReplies = Arc::default();
         let requests: Arc<Mutex<Vec<String>>> = Arc::default();
 
-        let (served, seen) = (Arc::clone(&routes), Arc::clone(&requests));
+        let (served, once, seen) = (
+            Arc::clone(&routes),
+            Arc::clone(&first),
+            Arc::clone(&requests),
+        );
         let task = tokio::spawn(async move {
             while let Ok((mut stream, _)) = listener.accept().await {
-                let (served, seen) = (Arc::clone(&served), Arc::clone(&seen));
+                let (served, once, seen) =
+                    (Arc::clone(&served), Arc::clone(&once), Arc::clone(&seen));
                 tokio::spawn(async move {
                     let path = request_path(&read_head(&mut stream).await).unwrap_or_default();
                     seen.lock().expect("the request list").push(path.clone());
-                    let reply = served
+                    let queued = once
                         .lock()
-                        .expect("the routes")
-                        .get(&path)
-                        .cloned()
-                        .unwrap_or(Reply::Status(404));
+                        .expect("the first replies")
+                        .get_mut(&path)
+                        .and_then(VecDeque::pop_front);
+                    let reply = queued.unwrap_or_else(|| {
+                        served
+                            .lock()
+                            .expect("the routes")
+                            .get(&path)
+                            .cloned()
+                            .unwrap_or(Reply::Status(404))
+                    });
                     if matches!(reply, Reply::Hang) {
                         tokio::time::sleep(Duration::from_secs(600)).await;
                         return;
@@ -111,9 +173,43 @@ impl TestServer {
         Self {
             address,
             routes,
+            first,
+            signer: Signer::new(),
             requests,
             task,
         }
+    }
+
+    /// The public key of this server's signing key, as a `.pub` file holds it.
+    pub(crate) fn public_key(&self) -> String {
+        self.signer.public_key()
+    }
+
+    /// What this server's key signs `bytes` with, as a `.sig` file holds it.
+    pub(crate) fn sign(&self, bytes: &[u8]) -> String {
+        self.signer.sign(bytes)
+    }
+
+    /// Answer `path` with `body` and `path.sig` with its signature, from now
+    /// on.
+    pub(crate) fn route_signed(&self, path: &str, body: &[u8]) {
+        self.route(path, Reply::Body(body.to_vec()));
+        self.route(
+            &format!("{path}.sig"),
+            Reply::Body(self.sign(body).into_bytes()),
+        );
+    }
+
+    /// Answer the next request for `path` with `reply`, and go back to the
+    /// lasting route after it. A file that changes between two requests is
+    /// what a launcher sees while a release is being published.
+    pub(crate) fn route_once(&self, path: &str, reply: Reply) {
+        self.first
+            .lock()
+            .expect("the first replies")
+            .entry(path.to_owned())
+            .or_default()
+            .push_back(reply);
     }
 
     /// Answer `path` with `reply` from now on.
@@ -134,24 +230,16 @@ impl TestServer {
         self.requests.lock().expect("the request list").clone()
     }
 
-    /// Publish a release: its zip and a manifest that names it.
+    /// Publish a release: its zip, a manifest that names it and the notes
+    /// feed, the last two signed.
     pub(crate) fn publish(&self, release: &Release) {
         let zip_path = format!("/NightMaze-{}.zip", release.version);
         self.route(&zip_path, Reply::Body(release.zip.clone()));
-        self.route(
+        self.route_signed(
             "/manifest.json",
-            Reply::Body(release.manifest(&self.url(&zip_path)).into_bytes()),
+            release.manifest(&self.url(&zip_path)).as_bytes(),
         );
-        self.route(
-            "/news.json",
-            Reply::Body(
-                format!(
-                    r#"{{"schema":1,"updates":[{{"version":"{}","title":"Notes of {}"}}]}}"#,
-                    release.version, release.version
-                )
-                .into_bytes(),
-            ),
-        );
+        self.route_signed("/news.json", release.news().as_bytes());
     }
 }
 
@@ -235,6 +323,16 @@ impl Release {
     }
 }
 
+impl Release {
+    /// The notes feed [`TestServer::publish`] puts next to the manifest.
+    pub(crate) fn news(&self) -> String {
+        format!(
+            r#"{{"schema":1,"updates":[{{"version":"{}","title":"Notes of {}"}}]}}"#,
+            self.version, self.version
+        )
+    }
+}
+
 fn zip_bytes(entries: &[(&str, &[u8])]) -> Vec<u8> {
     let mut writer = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
     let options = zip::write::SimpleFileOptions::default()
@@ -255,7 +353,8 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-/// A launcher configuration under `root` that reads its manifest from `server`.
+/// A launcher configuration under `root` that reads its manifest from `server`
+/// and trusts the key of that server only.
 pub(crate) fn config(root: &Path, server: &TestServer) -> Config {
     Config {
         layout: Layout::new(root),
@@ -263,5 +362,6 @@ pub(crate) fn config(root: &Path, server: &TestServer) -> Config {
         launcher_version: Version::parse("0.1.0").expect("a valid version"),
         platform: PLATFORM.to_owned(),
         start_watch: Duration::from_millis(1500),
+        trusted_keys: vec![server.public_key()],
     }
 }

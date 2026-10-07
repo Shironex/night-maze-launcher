@@ -15,14 +15,18 @@ use crate::launch;
 use crate::layout::Layout;
 use crate::manifest::{Manifest, NewsFeed};
 use crate::net;
+use crate::signature;
 use crate::state::{LocalNotice, RunResult, State, Verdict};
 use crate::version::Version;
 
 /// How long a new version has to survive to count as started.
 pub const START_WATCH: Duration = Duration::from_secs(15);
 
-/// What a [`Launcher`] is built from. Tests change the paths, the URL and the
-/// two durations; the shell uses [`Config::from_environment`].
+/// How long to wait before a file and its signature are fetched a second time.
+const SIGNATURE_RETRY_PAUSE: Duration = Duration::from_secs(1);
+
+/// What a [`Launcher`] is built from. Tests change the paths, the URL, the
+/// keys and the start watch; the shell uses [`Config::from_environment`].
 #[derive(Debug, Clone)]
 pub struct Config {
     /// Where everything is installed.
@@ -35,11 +39,16 @@ pub struct Config {
     pub platform: String,
     /// See [`START_WATCH`].
     pub start_watch: Duration,
+    /// The public keys whose signature on a manifest or a notes feed is
+    /// accepted, each as the content of a `.pub` file of the Tauri CLI.
+    pub trusted_keys: Vec<String>,
 }
 
 impl Config {
     /// The configuration of a normal start: per-user folder and the release
-    /// feed, unless the two environment overrides are set.
+    /// feed, unless the two environment overrides are set. The trusted keys
+    /// are [`signature::RELEASE_KEYS`], and in a development build also the
+    /// development key. No environment variable changes them.
     pub fn from_environment(launcher_version: Version) -> Option<Self> {
         Some(Self {
             layout: Layout::from_environment()?,
@@ -47,6 +56,7 @@ impl Config {
             launcher_version,
             platform: crate::layout::platform_key().to_owned(),
             start_watch: START_WATCH,
+            trusted_keys: signature::trusted_keys(),
         })
     }
 }
@@ -250,24 +260,58 @@ impl Launcher {
 
     async fn fetch_manifest(&self) -> Result<(Manifest, url::Url)> {
         let url = net::checked_url(&self.config.manifest_url)?;
-        let text = net::fetch_text(&self.client, &url, "check for updates").await?;
-        Ok((Manifest::parse(&text)?, url))
+        let bytes = self.fetch_signed(&url, "check for updates").await?;
+        Ok((Manifest::parse(text_of(&bytes)?)?, url))
+    }
+
+    /// Fetch the file at `url` and its signature, and hand out the bytes only
+    /// when a trusted key signed exactly them.
+    ///
+    /// A failed check is tried once more after a short pause. The file and
+    /// its `.sig` are two separate downloads, so while a release is being
+    /// published the launcher can get the new file with the old signature.
+    /// Only a failed check is retried: a request that fails or times out has
+    /// already used its time.
+    async fn fetch_signed(&self, url: &url::Url, operation: &'static str) -> Result<Vec<u8>> {
+        match self.fetch_signed_once(url, operation).await {
+            Err(CoreError::BadSignature) => {
+                tokio::time::sleep(SIGNATURE_RETRY_PAUSE).await;
+                self.fetch_signed_once(url, operation).await
+            }
+            other => other,
+        }
+    }
+
+    async fn fetch_signed_once(&self, url: &url::Url, operation: &'static str) -> Result<Vec<u8>> {
+        let bytes = net::fetch_bytes(&self.client, url, operation).await?;
+        let sig = net::fetch_bytes(
+            &self.client,
+            &net::signature_url(url),
+            "verify the update information",
+        )
+        .await?;
+        let sig_text = std::str::from_utf8(&sig).map_err(|_| CoreError::BadSignature)?;
+        signature::verify(&bytes, sig_text, &self.config.trusted_keys)?;
+        Ok(bytes)
     }
 
     /// Read `news.json` and keep a copy for offline starts. The launcher works
-    /// without it, so every failure is simply "no fresh notes".
+    /// without it, so every failure is simply "no fresh notes". That includes
+    /// a feed without a valid signature: its text is shown in the window, so
+    /// it is neither shown nor written to the cache.
     async fn fetch_feed(&self, manifest: &Manifest, manifest_url: &url::Url) -> Option<NewsFeed> {
         let url = net::feed_url(manifest_url, manifest.feed.as_deref())?;
-        let text = net::fetch_text(&self.client, &url, "read the release notes")
+        let bytes = self
+            .fetch_signed(&url, "read the release notes")
             .await
             .ok()?;
-        let feed = NewsFeed::parse(&text).ok()?;
+        let feed = NewsFeed::parse(text_of(&bytes).ok()?).ok()?;
 
         let cache = self.config.layout.cached_feed();
         if let Some(parent) = cache.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let _ = std::fs::write(&cache, text);
+        let _ = std::fs::write(&cache, bytes);
         Some(feed)
     }
 
@@ -555,6 +599,12 @@ fn reconcile(layout: &Layout, state: &mut State) -> bool {
     state.forget_removed_versions();
 
     before != (state.current.clone(), state.previous.clone())
+}
+
+/// The text of a file whose signature has been checked. Strict, because a
+/// file that is not UTF-8 is not one of ours and must not be repaired.
+fn text_of(bytes: &[u8]) -> Result<&str> {
+    std::str::from_utf8(bytes).map_err(|_| CoreError::BadManifest("it is not text".to_owned()))
 }
 
 /// Seconds since 1970.
