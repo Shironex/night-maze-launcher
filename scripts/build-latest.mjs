@@ -1,7 +1,7 @@
 // Writes latest.json and the installer copy for the launcher's own update.
 //
 //   node launcher/scripts/build-latest.mjs --bundle <folder with the NSIS output of tauri build> \
-//     --version 0.1.0 --repo Shironex/night-maze --out <folder> [--notes <text or @file>]
+//     --version 0.1.0 --repo Shironex/night-maze-launcher --out <folder> [--notes <text or @file>]
 //
 // `--bundle` holds exactly one `*-setup.exe` and its `.sig`. The installer is
 // copied into `--out` as NightMazeLauncher-<version>-windows-x64-setup.exe and
