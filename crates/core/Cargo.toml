@@ -1,0 +1,43 @@
+[package]
+name = "night-maze-launcher-core"
+description = "Update, install and launch rules of the Night Maze launcher, without any window code"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# A stand-in for the game that the launch tests start. It lives under
+# `tests/helpers/` so Cargo does not also pick it up as a test target.
+[[bin]]
+name = "stub_game"
+path = "tests/helpers/stub_game.rs"
+test = false
+doc = false
+
+[features]
+# Derives `specta::Type` on the types the window reads, so the shell can
+# generate TypeScript for them. Off by default: the rules need no bindings.
+specta = ["dep:specta"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+url = { workspace = true }
+sha2 = { workspace = true }
+zip = { workspace = true }
+minisign-verify = { workspace = true }
+base64 = { workspace = true }
+specta = { workspace = true, optional = true }
+
+[dev-dependencies]
+minisign = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
+
+[lints]
+workspace = true
