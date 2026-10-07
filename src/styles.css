@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Tailwind reads every file of the repository for class names. The capture
+   config is not part of the window, and words in it such as "shadow" would
+   become unused classes in the shipped stylesheet. */
+@source not '../showcase.config.mjs';
+
 /* Fonts are bundled with the launcher. Nothing is requested at run time.
    Latin and Latin Extended cover English and Polish. */
 @import '@fontsource/atkinson-hyperlegible-next/latin-400.css';
