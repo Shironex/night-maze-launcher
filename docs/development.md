@@ -36,9 +36,10 @@ with its history. From 0.1.2 on, releases are built by GitHub Actions
 - Updates itself. It reads `latest.json` from the newest release of this repository,
   `https://github.com/Shironex/night-maze-launcher/releases/latest/download/latest.json`
   (through `tauri-plugin-updater`, `src-tauri/src/updater.rs`), on start and from the settings.
-  When a newer launcher exists the window shows an "Update launcher" button. The installer is
-  downloaded, its signature is checked against the updater key, and it replaces the launcher.
-  A development build never does this.
+  A newer launcher is offered under Settings, About, with its notes. The main window shows an
+  "Update launcher" button only when this launcher is too old for the newest game or could not
+  start. The installer is downloaded, its signature is checked against the updater key, and it
+  replaces the launcher. A development build never does this.
 
 All network access is in Rust (`crates/core/src/net.rs`). The page makes no request: its
 content security policy allows none, and the lint configuration forbids `fetch` in `src`.
