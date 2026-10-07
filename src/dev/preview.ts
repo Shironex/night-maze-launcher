@@ -16,6 +16,8 @@ export interface Preview {
   fatal: string | null;
   /** Only the previews of the launcher's own update set this. */
   launcher?: LauncherUpdateState;
+  /** The launcher version whose toast counts as closed. */
+  dismissedLauncher?: string;
 }
 
 const MEGABYTE = 1024 * 1024;
@@ -154,7 +156,8 @@ const PREVIEWS: Record<string, Preview> = {
       progress: { received: 3.1 * MEGABYTE, total: 5 * MEGABYTE },
     },
   },
-  // Nothing is wrong and a newer launcher exists: the update is offered in the settings only.
+  // Nothing is wrong, a newer launcher exists and its toast was closed: the
+  // update is offered in the settings only.
   'launcher-newer': {
     ...QUIET,
     snapshot: { ...BASE, launcher_version: '0.1.1' },
@@ -162,6 +165,23 @@ const PREVIEWS: Record<string, Preview> = {
       ...NEWER_LAUNCHER,
       update: { kind: 'available', version: '0.1.2', notes: LAUNCHER_0_1_2_NOTES },
     },
+    dismissedLauncher: '0.1.2',
+  },
+  // Nothing is wrong and a newer launcher was found: the toast offers it.
+  'launcher-toast': { ...QUIET, snapshot: BASE, launcher: NEWER_LAUNCHER },
+  'launcher-toast-downloading': {
+    ...QUIET,
+    snapshot: BASE,
+    launcher: {
+      ...NEWER_LAUNCHER,
+      installing: true,
+      progress: { received: 3.1 * MEGABYTE, total: 5 * MEGABYTE },
+    },
+  },
+  'launcher-toast-failed': {
+    ...QUIET,
+    snapshot: BASE,
+    launcher: { ...NEWER_LAUNCHER, error: 'Could not reach the launcher update server' },
   },
 };
 

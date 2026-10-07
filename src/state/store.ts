@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import { commands, events, type Folder, type Progress, type Snapshot } from '../bindings';
-import type { Action, LauncherUpdateState } from './view';
+import { launcherRecheckAllowed, type Action, type LauncherUpdateState } from './view';
 
 interface LauncherStore {
   snapshot: Snapshot | null;
@@ -16,6 +16,12 @@ interface LauncherStore {
   fatal: string | null;
   /** The launcher's own update. It does not depend on anything above. */
   launcher: LauncherUpdateState;
+  /**
+   * The launcher version whose toast was closed. Kept in memory only, so the
+   * toast is back on the next start, and earlier when a still newer launcher
+   * is found.
+   */
+  dismissedLauncher: string | null;
 
   /** Read the local state, subscribe to events, and check for updates. */
   start: () => Promise<void>;
@@ -34,6 +40,12 @@ const NO_LAUNCHER_UPDATE: LauncherUpdateState = {
   progress: null,
   error: null,
 };
+
+/**
+ * How long an open launcher waits before it asks again for a newer launcher.
+ * A launcher that is left open for days still finds an update on the same day.
+ */
+const LAUNCHER_RECHECK_MS = 4 * 60 * 60 * 1000;
 
 /** A rejected command carries a sentence from the Rust side. */
 function message(error: unknown): string {
@@ -92,6 +104,7 @@ export const useLauncher = create<LauncherStore>((set, get) => {
     error: null,
     fatal: null,
     launcher: NO_LAUNCHER_UPDATE,
+    dismissedLauncher: null,
 
     start: async () => {
       if (started) return;
@@ -133,6 +146,12 @@ export const useLauncher = create<LauncherStore>((set, get) => {
         }
         if (checkOnStart) await get().checkLauncherUpdate(true);
       })();
+      // Asked again while the launcher stays open, as quietly as on start. The
+      // setting and the activity are read at that moment, not now.
+      setInterval(() => {
+        const { snapshot, launcher } = get();
+        if (launcherRecheckAllowed(snapshot, launcher)) void get().checkLauncherUpdate(true);
+      }, LAUNCHER_RECHECK_MS);
       if (gameCheck) await check();
       await own;
     },
@@ -164,6 +183,9 @@ export const useLauncher = create<LauncherStore>((set, get) => {
           return;
         case 'update_launcher':
           return get().installLauncherUpdate();
+        case 'dismiss_launcher_update':
+          set({ dismissedLauncher: action.version });
+          return;
       }
     },
 
