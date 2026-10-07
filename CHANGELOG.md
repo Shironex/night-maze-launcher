@@ -2,6 +2,15 @@
 
 What changed in each release of the launcher, newest first. The release workflow copies the section of the released version into the notes of the GitHub release and into `latest.json`, where the launcher shows it as plain text before it updates itself. A version without a section here is not released.
 
+## 0.1.3 (2026-10-07)
+
+The launcher now says by itself when a newer launcher is out.
+
+- When a newer launcher is found, a small box at the top right of the window names its version and has a button that installs it. Closed, it stays away until the launcher is started again.
+- A launcher that stays open looks for its own update again every four hours, but not while the game runs or something is being downloaded.
+
+This update itself is still found under Settings, About. From the next one on, the window shows it by itself.
+
 ## 0.1.2 (2026-10-07)
 
 The first release built and signed by GitHub Actions instead of on my PC. An installed 0.1.1 updating to it is the proof that this works.
