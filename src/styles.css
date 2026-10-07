@@ -125,57 +125,29 @@ button:disabled {
 .scene {
   position: absolute;
   inset: 0;
+  /* Nothing in it is for the mouse: no menu of the video, no drag of the picture. */
+  pointer-events: none;
+}
+.scene video {
   width: 100%;
   height: 100%;
   display: block;
+  object-fit: cover;
 }
-.scene .sky-star,
-.scene .moon {
-  fill: var(--l-moon);
-}
-.scene .moon-cut {
-  fill: var(--l-sky-top);
-}
-.scene .joint {
-  fill: none;
-  stroke: var(--l-edge);
-  stroke-width: 1.4;
-  opacity: 0.28;
-}
-.scene .door {
-  fill: var(--l-sky-top);
-}
-.scene .end {
-  fill: var(--l-stone-lit);
-}
-.scene .gem {
-  fill: var(--l-crystal);
-  stroke: var(--l-moon);
-  stroke-width: 1;
-  stroke-linejoin: round;
-}
-.scene .gem-line {
-  fill: none;
-  stroke: var(--l-crystal-deep);
-  stroke-width: 1;
-}
-.scene .fog {
-  fill: var(--l-moon);
-  opacity: 0.06;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .scene .glow {
-    animation: crystal-pulse 3.2s ease-in-out infinite;
-  }
-}
-@keyframes crystal-pulse {
-  0%,
-  100% {
-    opacity: 0.65;
-  }
-  50% {
-    opacity: 1;
-  }
+/* The scrim over the loop: night from the left, where the name and the cards
+   are, and from the bottom. */
+.scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--l-night) 86%, transparent), transparent 32%),
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--l-night) 97%, transparent),
+      color-mix(in srgb, var(--l-night) 86%, transparent) 36%,
+      transparent 64%
+    );
 }
 .st-sky-a {
   stop-color: var(--l-sky-top);
@@ -199,10 +171,6 @@ button:disabled {
   stop-color: var(--l-amber);
   stop-opacity: 0.5;
 }
-.st-warm-soft {
-  stop-color: var(--l-amber);
-  stop-opacity: 0.16;
-}
 .st-warm-0 {
   stop-color: var(--l-amber);
   stop-opacity: 0;
@@ -213,14 +181,6 @@ button:disabled {
 }
 .st-cry-0 {
   stop-color: var(--l-crystal);
-  stop-opacity: 0;
-}
-.st-moon {
-  stop-color: var(--l-moon);
-  stop-opacity: 0.3;
-}
-.st-moon-0 {
-  stop-color: var(--l-moon);
   stop-opacity: 0;
 }
 .st-night {

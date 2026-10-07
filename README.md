@@ -582,7 +582,9 @@ macOS (the build, the launcher update, the ad hoc signed bundle, the game packag
   launcher repository of why it is separate and the plan to move the launcher's source there
   later.
 - **No language switch.** The window is English only.
-- **No link stack, no generated art.** The background is the placeholder scene drawn in SVG.
+- **The background is a recorded loop of the game** (a 45 second glide over the maze, about
+  1.9 MB, made by `tools/record_launcher_loop.py` in the game repository), with a still picture
+  when the video cannot play or motion is reduced. It has not been seen on macOS.
 - **Running copies.** The launcher does not look for a copy of the game that was started
   outside of it.
 
