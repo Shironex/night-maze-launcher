@@ -110,8 +110,9 @@ Set `WEBVIEW2_USER_DATA_FOLDER` to move that too.
 In a development build, `http://localhost:15190/?preview=<name>` shows a fixed state without a
 server: `ready`, `update`, `downloading`, `installing`, `running`, `offline`, `first-run`,
 `first-run-offline`, `rolled-back`, `update-failed`, `launcher-too-old`, `launcher-update`,
-`launcher-downloading`. The list is in `src/dev/preview.ts`, which is not part of a release
-build.
+`launcher-downloading`, `launcher-newer`. The list is in `src/dev/preview.ts`, which is not part
+of a release build. The release notes in these states are the published ones of the game, kept
+as static data in `src/dev/preview-feed.ts`.
 
 ## Checks
 
