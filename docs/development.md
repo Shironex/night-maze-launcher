@@ -36,11 +36,16 @@ hand**, because the workflow looked for the new draft before GitHub listed it. S
 - Starts the installed version when there is no network.
 - Updates itself. It reads `latest.json` from the newest release of this repository,
   `https://github.com/Shironex/night-maze-launcher/releases/latest/download/latest.json`
-  (through `tauri-plugin-updater`, `src-tauri/src/updater.rs`), on start and from the settings.
-  A newer launcher is offered under Settings, About, with its notes. The main window shows an
-  "Update launcher" button only when this launcher is too old for the newest game or could not
-  start. The installer is downloaded, its signature is checked against the updater key, and it
-  replaces the launcher. A development build never does this.
+  (through `tauri-plugin-updater`, `src-tauri/src/updater.rs`), on start, every four hours
+  while it stays open, and from the settings. The two checks it makes by itself follow the
+  "Check for updates on start" setting, say nothing when they fail, and the later one is
+  skipped while the game runs or anything is being downloaded. A newer launcher is offered in a
+  toast at the top right of the main window, with a button that installs it, and under
+  Settings, About, with its notes. A closed toast stays away until the launcher is started
+  again or a still newer launcher is found. Where this launcher is too old for the newest game
+  or could not start, the main button says "Update launcher" and there is no toast. The
+  installer is downloaded, its signature is checked against the updater key, and it replaces
+  the launcher. A development build never does this.
 
 All network access is in Rust (`crates/core/src/net.rs`). The page makes no request: its
 content security policy allows none, and the lint configuration forbids `fetch` in `src`.
@@ -112,8 +117,9 @@ Set `WEBVIEW2_USER_DATA_FOLDER` to move that too.
 In a development build, `http://localhost:15190/?preview=<name>` shows a fixed state without a
 server: `ready`, `update`, `downloading`, `installing`, `running`, `offline`, `first-run`,
 `first-run-offline`, `rolled-back`, `update-failed`, `launcher-too-old`, `launcher-update`,
-`launcher-downloading`, `launcher-newer`. The list is in `src/dev/preview.ts`, which is not part
-of a release build. The release notes in these states are the published ones of the game, kept
+`launcher-downloading`, `launcher-newer` (the toast was closed, so the update is in the
+settings only), `launcher-toast`, `launcher-toast-downloading`, `launcher-toast-failed`. The
+list is in `src/dev/preview.ts`, which is not part of a release build. The release notes in these states are the published ones of the game, kept
 as static data in `src/dev/preview-feed.ts`.
 
 ## Checks
