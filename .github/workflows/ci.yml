@@ -1,0 +1,163 @@
+# The checks of docs/development.md, on every push to main and every pull
+# request. On main it also builds the installer the way a release does, signed
+# with the development key from the repository, so the release build is proven
+# without a secret. That installer is NOT a release: no installed launcher
+# accepts the development key.
+#
+# No job here sees a secret. Actions are pinned to a commit, with the version
+# in a comment, and Dependabot raises the pins.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request replaces the run before it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Git Bash on the Windows runner too, so one script text runs on every runner
+# and on a developer machine.
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Corepack must not stop to ask before it downloads pnpm.
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      # Corepack ships with Node 22 and installs the pnpm version that
+      # `packageManager` in package.json names, so no third-party action is
+      # needed and the version has one source.
+      - name: Set up pnpm
+        run: corepack enable
+
+      # Installs the version rust-toolchain.toml pins, with clippy and rustfmt.
+      - name: Set up Rust
+        run: rustup toolchain install --no-self-update
+
+      # Only here, never in the release workflow: a release is built from
+      # nothing a previous run left behind.
+      - name: Cache the Rust build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # First: the Rust shell embeds dist/ and does not compile without it.
+      - name: Build the page
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Page tests
+        run: pnpm test
+
+      - name: Script tests
+        run: pnpm test:scripts
+
+      - name: Rust format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --workspace
+
+  dev-installer:
+    name: Installer signed with the DEV key
+    # Not on pull requests: the build takes long and proves nothing a pull
+    # request needs before it is merged.
+    if: github.event_name == 'push'
+    needs: checks
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Set up pnpm
+        run: corepack enable
+
+      - name: Set up Rust
+        run: rustup toolchain install --no-self-update
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The development key is in the repository with an empty password, so
+      # this is no secret. The CLI warns that the key does not match the one
+      # in tauri.conf.json; that is expected here.
+      - name: Build the installer, signed with the development key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: |
+          TAURI_SIGNING_PRIVATE_KEY="$(tr -d '\r\n' < dev-keys/dev.key)" \
+            pnpm tauri build --bundles nsis --ci -- --locked
+
+      # The same two steps the publish job of the release workflow runs, with
+      # the development public key in place of the one in tauri.conf.json.
+      - name: Check the signature and write latest.json
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+          installer="$(ls target/release/bundle/nsis/*-setup.exe)"
+          cargo run --locked -p night-maze-launcher-core --example verify_file -- \
+            "$installer" --pubkey "$(cat dev-keys/dev.key.pub)" --version "$version"
+          node scripts/build-latest.mjs \
+            --bundle target/release/bundle/nsis \
+            --version "$version" \
+            --repo "$GITHUB_REPOSITORY" \
+            --out dev-installer \
+            --notes "Signed with the development key. Not a release."
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: DEV-KEY-NOT-A-RELEASE-launcher-installer
+          path: dev-installer/
+          if-no-files-found: error
+          retention-days: 7
