@@ -13,10 +13,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "tauri": "tauri",
     "bindings": "cargo test -p night-maze-launcher the_committed_bindings_match_the_commands",
     "package-game": "node scripts/package-game.mjs",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "notices": "node scripts/build-launcher-notices.mjs"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible-mono": "^5.3.0",
