@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import { commands, events, type Folder, type Progress, type Snapshot } from '../bindings';
-import type { Action } from './view';
+import type { Action, LauncherUpdateState } from './view';
 
 interface LauncherStore {
   snapshot: Snapshot | null;
@@ -14,13 +14,26 @@ interface LauncherStore {
   checking: boolean;
   error: string | null;
   fatal: string | null;
+  /** The launcher's own update. It does not depend on anything above. */
+  launcher: LauncherUpdateState;
 
   /** Read the local state, subscribe to events, and check for updates. */
   start: () => Promise<void>;
   run: (action: Action) => Promise<void>;
   setCheckOnStart: (enabled: boolean) => Promise<void>;
   openFolder: (folder: Folder) => Promise<void>;
+  /** `quiet` keeps a failed check to itself: nobody asked for the one on start. */
+  checkLauncherUpdate: (quiet?: boolean) => Promise<void>;
+  installLauncherUpdate: () => Promise<void>;
 }
+
+const NO_LAUNCHER_UPDATE: LauncherUpdateState = {
+  update: null,
+  checking: false,
+  installing: false,
+  progress: null,
+  error: null,
+};
 
 /** A rejected command carries a sentence from the Rust side. */
 function message(error: unknown): string {
@@ -69,12 +82,16 @@ export const useLauncher = create<LauncherStore>((set, get) => {
     }
   };
 
+  const setLauncher = (change: Partial<LauncherUpdateState>) =>
+    set({ launcher: { ...get().launcher, ...change } });
+
   return {
     snapshot: null,
     progress: null,
     checking: false,
     error: null,
     fatal: null,
+    launcher: NO_LAUNCHER_UPDATE,
 
     start: async () => {
       if (started) return;
@@ -87,15 +104,37 @@ export const useLauncher = create<LauncherStore>((set, get) => {
           return;
         }
       }
+
+      // The setting lives in the state file. When that cannot be read the
+      // setting is unknown, and the launcher's own update is still looked
+      // for: a launcher in that state is the one that needs it most.
+      let checkOnStart = true;
+      let gameCheck = false;
       try {
         await events.installProgress.listen(event => set({ progress: event.payload }));
         await events.snapshotChanged.listen(event => set({ snapshot: event.payload }));
         const snapshot = await commands.snapshot();
         set({ snapshot });
-        if (snapshot.check_on_start) await check();
+        checkOnStart = snapshot.check_on_start;
+        gameCheck = checkOnStart;
       } catch (error) {
         set({ fatal: message(error) });
       }
+
+      // Two separate questions to two separate places, asked side by side.
+      // Neither waits for the other and neither fails with the other.
+      const own = (async () => {
+        try {
+          await events.launcherUpdateProgress.listen(event =>
+            setLauncher({ progress: event.payload })
+          );
+        } catch {
+          // Without the event the download still runs, it only shows no percent.
+        }
+        if (checkOnStart) await get().checkLauncherUpdate(true);
+      })();
+      if (gameCheck) await check();
+      await own;
     },
 
     run: async action => {
@@ -123,6 +162,8 @@ export const useLauncher = create<LauncherStore>((set, get) => {
         case 'clear_error':
           set({ error: null });
           return;
+        case 'update_launcher':
+          return get().installLauncherUpdate();
       }
     },
 
@@ -139,6 +180,28 @@ export const useLauncher = create<LauncherStore>((set, get) => {
         await commands.openFolder(folder);
       } catch (error) {
         set({ error: message(error) });
+      }
+    },
+
+    checkLauncherUpdate: async (quiet = false) => {
+      if (get().launcher.checking || get().launcher.installing) return;
+      setLauncher({ checking: true, error: null });
+      try {
+        setLauncher({ update: await commands.checkLauncherUpdate(), checking: false });
+      } catch (error) {
+        setLauncher({ checking: false, error: quiet ? null : message(error) });
+      }
+    },
+
+    installLauncherUpdate: async () => {
+      if (get().launcher.installing) return;
+      setLauncher({ installing: true, progress: null, error: null });
+      try {
+        // Answers only when it did not work: after a download that passed its
+        // check the launcher is closed and started again as the new version.
+        await commands.installLauncherUpdate();
+      } catch (error) {
+        setLauncher({ installing: false, progress: null, error: message(error) });
       }
     },
   };

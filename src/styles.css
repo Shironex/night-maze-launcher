@@ -722,6 +722,14 @@ button.rel:hover {
   width: 1.3em;
   height: 1.3em;
 }
+/* Disabled the way the main button is: dimmed text and a dashed edge. */
+.sbtn:disabled {
+  color: var(--l-dim);
+  border-style: dashed;
+}
+.sbtn:disabled:hover {
+  background: var(--l-deep);
+}
 
 /* ---- modals --------------------------------------------------------------- */
 .w-dim {
@@ -869,6 +877,41 @@ button.rel:hover {
   display: block;
   margin-top: 0.2em;
   overflow-wrap: anywhere;
+}
+/* The launcher's own update, in the About section: its notes keep their line
+   breaks, a failure gets the warning icon, and the download has the same thin
+   amber line as the main button. */
+.m-row .notes {
+  color: var(--l-moon);
+  white-space: pre-line;
+  margin-top: 0.5em;
+}
+.m-row .fail {
+  display: flex;
+  gap: 0.5em;
+  align-items: flex-start;
+  color: var(--l-moon);
+  margin-top: 0.5em;
+}
+.m-row .fail .ico {
+  width: 1.2em;
+  height: 1.2em;
+  color: var(--l-amber);
+  margin-top: 0.1em;
+}
+.m-bar {
+  display: block;
+  height: 0.35em;
+  margin-top: 0.6em;
+  border-radius: 99em;
+  background: var(--l-slate);
+  overflow: hidden;
+}
+.m-bar i {
+  display: block;
+  height: 100%;
+  background: var(--l-amber);
+  transition: width 0.2s linear;
 }
 .tog {
   display: inline-flex;

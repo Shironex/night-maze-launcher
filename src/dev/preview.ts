@@ -5,6 +5,7 @@
 // followed by one of the names below, for example `?preview=installing`.
 
 import type { NewsFeed, Progress, Snapshot } from '../bindings';
+import type { LauncherUpdateState } from '../state/view';
 
 export interface Preview {
   snapshot: Snapshot;
@@ -12,6 +13,8 @@ export interface Preview {
   checking: boolean;
   error: string | null;
   fatal: string | null;
+  /** Only the previews of the launcher's own update set this. */
+  launcher?: LauncherUpdateState;
 }
 
 const FEED: NewsFeed = {
@@ -62,6 +65,21 @@ const BASE: Snapshot = {
 
 const QUIET = { progress: null, checking: false, error: null, fatal: null };
 const MEGABYTE = 1024 * 1024;
+
+const TOO_OLD: Snapshot = { ...BASE, remote: { kind: 'launcher_too_old', required: '0.2.0' } };
+
+/** A newer launcher was found and nothing is running yet. */
+const NEWER_LAUNCHER: LauncherUpdateState = {
+  update: {
+    kind: 'available',
+    version: '0.2.0',
+    notes: 'Reads the new release format.\nThe window opens faster.',
+  },
+  checking: false,
+  installing: false,
+  progress: null,
+  error: null,
+};
 
 const PREVIEWS: Record<string, Preview> = {
   ready: { ...QUIET, snapshot: BASE },
@@ -143,9 +161,16 @@ const PREVIEWS: Record<string, Preview> = {
       remote: { kind: 'update_available', version: '0.9.1', size: 18 * MEGABYTE },
     },
   },
-  'launcher-too-old': {
+  'launcher-too-old': { ...QUIET, snapshot: TOO_OLD },
+  'launcher-update': { ...QUIET, snapshot: TOO_OLD, launcher: NEWER_LAUNCHER },
+  'launcher-downloading': {
     ...QUIET,
-    snapshot: { ...BASE, remote: { kind: 'launcher_too_old', required: '0.2.0' } },
+    snapshot: TOO_OLD,
+    launcher: {
+      ...NEWER_LAUNCHER,
+      installing: true,
+      progress: { received: 3.1 * MEGABYTE, total: 5 * MEGABYTE },
+    },
   },
 };
 

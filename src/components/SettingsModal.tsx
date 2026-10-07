@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Snapshot } from '../bindings';
+import { percent } from '../lib/format';
 import { useLauncher } from '../state/store';
+import { launcherStatusText, sentence } from '../state/view';
 import { Icon, type IconName } from './Icon';
 import { Modal } from './Modal';
 
@@ -101,12 +103,13 @@ export function SettingsModal({ snapshot, onClose }: SettingsModalProps) {
           <h2 className="m-h">About</h2>
           <p className="m-sub">Night Maze launcher {snapshot.launcher_version}</p>
           <div className="m-rows">
+            <LauncherVersionRow version={snapshot.launcher_version} />
             <div className="m-row">
               <div>
                 <b>No telemetry</b>
                 <span className="d">
-                  This launcher only talks to github.com: the release manifest, the notes and the
-                  game download. Logs stay on this computer.
+                  This launcher only talks to github.com: the release manifest, the notes, the game
+                  download and its own update. Logs stay on this computer.
                 </span>
               </div>
             </div>
@@ -133,5 +136,59 @@ export function SettingsModal({ snapshot, onClose }: SettingsModalProps) {
         </div>
       )}
     </Modal>
+  );
+}
+
+/**
+ * The launcher's own version and update. One button: it checks, and once a
+ * newer launcher was found it installs that one. What it shows is what the
+ * Rust side answered, the page asks nobody else.
+ */
+function LauncherVersionRow({ version }: { version: string }) {
+  const launcher = useLauncher(store => store.launcher);
+  const checkLauncherUpdate = useLauncher(store => store.checkLauncherUpdate);
+  const installLauncherUpdate = useLauncher(store => store.installLauncherUpdate);
+
+  const newer = launcher.update?.kind === 'available' ? launcher.update : null;
+  const busy = launcher.checking || launcher.installing;
+  const done = percent(launcher.progress?.received ?? 0, launcher.progress?.total ?? 0);
+
+  return (
+    <div className="m-row">
+      <div>
+        <b>Launcher version</b>
+        <span className="d" role="status" aria-live="polite">
+          {launcherStatusText(version, launcher)}
+        </span>
+        {launcher.installing && (
+          <span
+            className="m-bar"
+            role="progressbar"
+            aria-label="Launcher update progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={done}
+          >
+            <i style={{ width: `${done}%` }} />
+          </span>
+        )}
+        {newer?.notes && !launcher.installing && <span className="d notes">{newer.notes}</span>}
+        {launcher.error && (
+          <span className="d fail" role="alert">
+            <Icon name="warning" />
+            {sentence(launcher.error)}
+          </span>
+        )}
+      </div>
+      <button
+        type="button"
+        className="sbtn"
+        disabled={busy}
+        onClick={() => void (newer ? installLauncherUpdate() : checkLauncherUpdate())}
+      >
+        <Icon name={newer ? 'upload' : 'retry'} />
+        {newer ? `Update to v${newer.version}` : 'Check for launcher updates'}
+      </button>
+    </div>
   );
 }

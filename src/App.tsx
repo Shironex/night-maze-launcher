@@ -18,6 +18,7 @@ export function App() {
   const checking = useLauncher(store => store.checking);
   const error = useLauncher(store => store.error);
   const fatal = useLauncher(store => store.fatal);
+  const launcher = useLauncher(store => store.launcher);
   const start = useLauncher(store => store.start);
   const run = useLauncher(store => store.run);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -27,8 +28,8 @@ export function App() {
   }, [start]);
 
   const view = useMemo(
-    () => deriveView({ snapshot, progress, checking, error, fatal }),
-    [snapshot, progress, checking, error, fatal]
+    () => deriveView({ snapshot, progress, checking, error, fatal, launcher }),
+    [snapshot, progress, checking, error, fatal, launcher]
   );
   const onAction = useCallback((action: Action) => void run(action), [run]);
   const closeDialog = useCallback(() => setDialog(null), []);
