@@ -12,12 +12,13 @@ React and TypeScript (`src`), and `src-tauri` joins the two. The game is a separ
 [`Shironex/night-maze`](https://github.com/Shironex/night-maze), and the two share no build.
 What they do share, the release files, is written down in [contract.md](contract.md).
 
-**Status: launcher 0.1.0 and 0.1.1 are released (2026-10-07, built and signed on my
-PC), game 0.10.0 is released.** I installed 0.1.0 and updated it to 0.1.1 through the
-button in Settings on one Windows 11 PC, then installed game 0.10.0 through the launcher and ran
-it. The source moved here from the `launcher/` folder of the game repository on the same day,
-with its history. From 0.1.2 on, releases are built by GitHub Actions
-([Releasing](#releasing)); **that workflow has not run yet**. See
+**Status: launcher 0.1.0, 0.1.1 and 0.1.2 are released (2026-10-07), game 0.10.0 is
+released.** 0.1.0 and 0.1.1 were built and signed on my PC. I installed 0.1.0 and updated it to
+0.1.1 through the button in Settings on one Windows 11 PC, then installed game 0.10.0 through
+the launcher and ran it. The source moved here from the `launcher/` folder of the game
+repository on the same day, with its history. 0.1.2 was built and signed by GitHub Actions
+after my approval ([Releasing](#releasing)); **its last step, publishing the draft, I did by
+hand**, because the workflow looked for the new draft before GitHub listed it. See
 [Not done yet](#not-done-yet).
 
 ## What it does
@@ -36,9 +37,10 @@ with its history. From 0.1.2 on, releases are built by GitHub Actions
 - Updates itself. It reads `latest.json` from the newest release of this repository,
   `https://github.com/Shironex/night-maze-launcher/releases/latest/download/latest.json`
   (through `tauri-plugin-updater`, `src-tauri/src/updater.rs`), on start and from the settings.
-  When a newer launcher exists the window shows an "Update launcher" button. The installer is
-  downloaded, its signature is checked against the updater key, and it replaces the launcher.
-  A development build never does this.
+  A newer launcher is offered under Settings, About, with its notes. The main window shows an
+  "Update launcher" button only when this launcher is too old for the newest game or could not
+  start. The installer is downloaded, its signature is checked against the updater key, and it
+  replaces the launcher. A development build never does this.
 
 All network access is in Rust (`crates/core/src/net.rs`). The page makes no request: its
 content security policy allows none, and the lint configuration forbids `fetch` in `src`.
@@ -110,8 +112,9 @@ Set `WEBVIEW2_USER_DATA_FOLDER` to move that too.
 In a development build, `http://localhost:15190/?preview=<name>` shows a fixed state without a
 server: `ready`, `update`, `downloading`, `installing`, `running`, `offline`, `first-run`,
 `first-run-offline`, `rolled-back`, `update-failed`, `launcher-too-old`, `launcher-update`,
-`launcher-downloading`. The list is in `src/dev/preview.ts`, which is not part of a release
-build.
+`launcher-downloading`, `launcher-newer`. The list is in `src/dev/preview.ts`, which is not part
+of a release build. The release notes in these states are the published ones of the game, kept
+as static data in `src/dev/preview-feed.ts`.
 
 ## Checks
 
@@ -464,30 +467,28 @@ A (0.1.0 to 0.1.1; `requireSignedVersion` accepted the signatures) and a real re
 by manifest A (the `verify_manifest` example accepted the manifest of game 0.10.0, and the
 installed launcher then showed its notes and installed it).
 
+**Run once on GitHub, on 2026-10-07:** signing with the key from the GitHub secret, for 0.1.2,
+after my approval. `verify_file` accepted that signature on the runner.
+
 **Never run:** a rotation of either pair, the second-key retry in `updater.rs` against a real
-release, signing with the key from the GitHub secret, and everything in
-[Not done yet](#not-done-yet).
+release, and everything in [Not done yet](#not-done-yet).
 
 ## Not done yet
 
-- **The release workflow has never run.** Not the rehearsal and not a tag. It was parsed as
-  YAML and read line by line, and what it runs was run on my PC on 2026-10-07 with
-  the development key: the unsigned NSIS build with `tauri.unsigned.conf.json`, the signing
-  command, `verify_file` (accepted with the development public key, refused with the key in
-  the config) and `build-latest.mjs`. `verify_file` also accepted the published 0.1.1
-  installer with the signature from its `latest.json`. Never run anywhere: the secrets as
-  GitHub hands them over (the key may carry a line break, which the job removes), the approval
-  of the `release` environment and its tag rule, artifacts passed between jobs, the `if:`
-  conditions, `rustup` and `corepack` on the runners, the Ubuntu runner building the
-  `verify_file` example, and every `gh` step of `publish` (finding and removing a draft,
-  creating one, comparing its files, publishing).
-- **CI has never run.** `ci.yml` was parsed and its commands are the local checks, which are
-  green on Windows.
-- **An installer signed on a runner has never been installed.** 0.1.2 is meant to be the first
-  release built entirely on runners, and the update of an installed 0.1.1 to it is the proof.
-  The signature of 0.1.2 is made by `tauri signer sign`, not by `tauri build` as for 0.1.0 and
-  0.1.1. The two write the same format and `verify_file` checks it, but the updater in an
-  installed launcher has only ever accepted the second kind.
+- **The release workflow has never run to its end.** It ran twice on 2026-10-07. The
+  rehearsal from `main` was green. The run for the tag `v0.1.2` built the installer, signed it
+  after my approval, checked the signature on the Ubuntu runner (`verify_file`), wrote
+  `latest.json` and created the draft. Then the step that compares the draft with the local
+  files failed: it looked for the draft before GitHub listed it. I published that draft by
+  hand. The lookup waits and tries again now, and that change has not run for a tag yet. Never
+  run on a runner: the "Publish" step, the last step that reads the address the launchers
+  read, and the removal of a draft that a failed run left behind.
+- **CI is green on `main`**, on the two pushes of 2026-10-07. Its runs for the two pull
+  requests Dependabot opened that day failed.
+- **An installer signed on a runner has been installed once.** On 2026-10-07 I updated an
+  installed 0.1.1 to 0.1.2 through Settings, About, on one Windows 11 PC. The signature of 0.1.2
+  was made by `tauri signer sign` on a runner, not by `tauri build`, and the installed launcher
+  accepted it. A clean second machine has not been tried.
 - **The real update path was run once and only once**, on one PC (see
   [What has been run by hand](#what-has-been-run-by-hand)). The update on a clean second
   machine has not been tried.
@@ -499,10 +500,11 @@ release, signing with the key from the GitHub secret, and everything in
 - **No code signing.** Windows SmartScreen warns about the installer on first start. How it
   behaves, and whether antivirus software objects to a program that downloads and starts
   another one, has not been tested on a PC that never saw the launcher.
-- **Dependabot.** `.github/dependabot.yml` is new and has not produced a pull request yet. Two
-  alerts were open for the launcher while it lived in the game repository: `source-map-js`
-  (high, `pnpm-lock.yaml`) and `glib` (medium, `Cargo.lock`), and the automatic update runs
-  for both had failed. Look at the alerts of this repository after the first push.
+- **Dependabot.** `.github/dependabot.yml` produced its first two pull requests on 2026-10-07,
+  one for the npm group and one for the cargo group, and CI failed on both. Two alerts were
+  open for the launcher while it lived in the game repository: `source-map-js` (high,
+  `pnpm-lock.yaml`) and `glib` (medium, `Cargo.lock`). The automatic update runs for both
+  failed there, and they failed in this repository too.
 - **No language switch.** The window is English only.
 - **The background is a recorded loop of the game** (a 45 second glide over the maze, about
   1.9 MB, made by `tools/record_launcher_loop.py` in the game repository), with a still picture

@@ -9,6 +9,9 @@ src-tauri/gen/
 # Local packages made by scripts/package-game.mjs
 releases/
 
+# Raw captures of `pnpm showcase`. The framed images in assets/showcase/ are committed.
+showcase-out/
+
 *.log
 
 # Signing keys never enter the repository. The one exception is the

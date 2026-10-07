@@ -4,6 +4,7 @@ target/
 src-tauri/gen/
 src-tauri/icons/
 releases/
+showcase-out/
 
 # Package managers own the format of their lockfiles.
 Cargo.lock

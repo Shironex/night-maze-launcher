@@ -4,7 +4,7 @@ What changed in each release of the launcher, newest first. The release workflow
 
 ## 0.1.2 (2026-10-07)
 
-The first release built, signed and published by GitHub Actions instead of on my PC. An installed 0.1.1 updating to it is the proof that this works.
+The first release built and signed by GitHub Actions instead of on my PC. An installed 0.1.1 updating to it is the proof that this works.
 
 - The background is now a recorded loop of the real game, a slow glide over the maze, with a still picture when the video cannot play or motion is reduced.
 - The header says Windows only, because that is what ships.
