@@ -2,12 +2,13 @@
 
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { inflateRawSync } from 'node:zlib';
-import { buildManifest, buildNews, parseChangelog } from './feed.mjs';
+import { buildManifest, buildNews, feedText, parseChangelog } from './feed.mjs';
 import { createZip } from './zip.mjs';
 
 const CHANGELOG = `# Changelog
@@ -137,6 +138,48 @@ test('the manifest names every package of the version with its size and checksum
 
     assert.throws(() => buildManifest({ directory, version: '1.0.0', baseUrl: 'https://x/' }));
     assert.throws(() => buildManifest({ directory, version: 'v0.9.0', baseUrl: 'https://x/' }));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+// The contract with the reader. The two files in scripts/fixtures/contract are
+// what this code writes for fixed inputs, and a test of the Rust core
+// (crates/core/tests/contract.rs) parses the same two files with the parsers
+// of the launcher. A change of the format fails here first. When the change is
+// meant, write the files again with UPDATE_FIXTURES=1 and make the Rust test
+// agree.
+test('the writer still produces the committed contract fixtures, byte for byte', () => {
+  const fixtures = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'contract');
+  const directory = mkdtempSync(join(tmpdir(), 'nm-contract-'));
+  try {
+    writeFileSync(join(directory, 'NightMaze-0.9.1-windows-x64.zip'), 'windows package');
+    writeFileSync(join(directory, 'NightMaze-0.9.1-macos-arm64.zip'), 'mac package');
+    const news = buildNews({
+      version: '0.9.1',
+      changelog: CHANGELOG,
+      extra: {
+        news: [{ date: '2026-12-10', title: 'A post', body: 'Text' }],
+        notices: [{ id: 'n1', level: 'warning', title: 'A notice', body: 'Text' }],
+      },
+    });
+    const manifest = buildManifest({
+      directory,
+      version: '0.9.1',
+      baseUrl: 'https://github.com/Shironex/night-maze/releases/download/v0.9.1/',
+      notes: news.updates[0].summary,
+      launcherMin: '0.1.2',
+      published: '2026-12-12T18:00:00Z',
+    });
+
+    for (const [name, value] of [
+      ['manifest.json', manifest],
+      ['news.json', news],
+    ]) {
+      const path = join(fixtures, name);
+      if (process.env.UPDATE_FIXTURES) writeFileSync(path, feedText(value));
+      assert.equal(feedText(value), readFileSync(path, 'utf8'), `${name} changed its format`);
+    }
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

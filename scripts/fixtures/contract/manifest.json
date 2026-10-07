@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "channel": "stable",
+  "version": "0.9.1",
+  "published": "2026-12-12T18:00:00Z",
+  "notes": "A small release after the first round of feedback.",
+  "feed": "https://github.com/Shironex/night-maze/releases/download/v0.9.1/news.json",
+  "game": {
+    "macos-arm64": {
+      "url": "https://github.com/Shironex/night-maze/releases/download/v0.9.1/NightMaze-0.9.1-macos-arm64.zip",
+      "size": 11,
+      "sha256": "9ded37e1d14ce2c0befd801136917794e664d0a9d9e89c798a6bf6abd18672dc",
+      "exe": "night_maze"
+    },
+    "windows-x64": {
+      "url": "https://github.com/Shironex/night-maze/releases/download/v0.9.1/NightMaze-0.9.1-windows-x64.zip",
+      "size": 15,
+      "sha256": "3414980677bf107c6c25dc303125b84295c8abb80d9c93db93d97ffd286662da",
+      "exe": "night_maze.exe"
+    }
+  },
+  "launcher": {
+    "min": "0.1.2"
+  }
+}

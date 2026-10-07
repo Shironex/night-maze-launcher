@@ -13,7 +13,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { argument, buildManifest, buildNews, flag } from './lib/feed.mjs';
+import { argument, buildManifest, buildNews, feedText, flag } from './lib/feed.mjs';
 import { feedSigningKey, signFeed } from './lib/sign.mjs';
 
 const directory = argument('dir');
@@ -52,8 +52,8 @@ const manifest = buildManifest({
 });
 
 mkdirSync(out, { recursive: true });
-writeFileSync(join(out, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-writeFileSync(join(out, 'news.json'), `${JSON.stringify(news, null, 2)}\n`);
+writeFileSync(join(out, 'manifest.json'), feedText(manifest));
+writeFileSync(join(out, 'news.json'), feedText(news));
 console.log(
   `manifest.json: version ${version}, platforms ${Object.keys(manifest.game).join(', ')}`
 );

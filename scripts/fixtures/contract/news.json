@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "updates": [
+    {
+      "version": "0.9.1",
+      "date": "2026-12-12",
+      "tag": "Fix release",
+      "title": "Brighter crystals and a fix for the exit gate",
+      "summary": "A small release after the first round of feedback.",
+      "highlight": true,
+      "groups": [
+        {
+          "title": "Gameplay",
+          "items": [
+            "The exit gate opens on the last crystal",
+            "Crystals glow further than before"
+          ]
+        },
+        {
+          "title": "Fixes",
+          "items": [
+            "The battery no longer drains while the game is paused"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "0.9.0",
+      "date": "2026-12-05",
+      "tag": "Milestone release",
+      "title": "The whole maze",
+      "summary": "",
+      "highlight": false,
+      "groups": [
+        {
+          "title": "Changes",
+          "items": [
+            "A bullet without a group"
+          ]
+        }
+      ]
+    }
+  ],
+  "news": [
+    {
+      "date": "2026-12-10",
+      "title": "A post",
+      "body": "Text"
+    }
+  ],
+  "notices": [
+    {
+      "id": "n1",
+      "level": "warning",
+      "title": "A notice",
+      "body": "Text"
+    }
+  ]
+}

@@ -33,6 +33,7 @@ import {
   buildManifest,
   buildNews,
   executableName,
+  feedText,
   flag,
   isVersion,
   packageName,
@@ -132,8 +133,8 @@ if (baseUrl) {
     notes: current?.summary || current?.title,
     launcherMin: argument('launcher-min', '0.1.0'),
   });
-  writeFileSync(join(outDirectory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-  writeFileSync(join(outDirectory, 'news.json'), `${JSON.stringify(news, null, 2)}\n`);
+  writeFileSync(join(outDirectory, 'manifest.json'), feedText(manifest));
+  writeFileSync(join(outDirectory, 'news.json'), feedText(news));
   console.log(`manifest.json and news.json written for ${baseUrl}`);
   try {
     signFeed(outDirectory, signingKey);

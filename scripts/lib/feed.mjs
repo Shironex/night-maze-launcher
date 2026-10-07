@@ -15,7 +15,7 @@ export const SCHEMA = 1;
 const PACKAGE_NAME = /^NightMaze-(\d+\.\d+\.\d+)-([a-z0-9]+-[a-z0-9]+)\.zip$/;
 
 /** `## 0.9.0 (2026-12-05) Milestone release`. The date and the tag are optional. */
-const VERSION_HEADING =
+export const VERSION_HEADING =
   /^##\s+\[?v?(\d+\.\d+\.\d+)\]?\s*(?:-\s*)?(?:\(?(\d{4}-\d{2}-\d{2})\)?)?\s*(.*)$/;
 
 export function packageName(version, platform) {
@@ -184,6 +184,14 @@ export function buildNews(options) {
     news: Array.isArray(extra.news) ? extra.news : [],
     notices: Array.isArray(extra.notices) ? extra.notices : [],
   };
+}
+
+/**
+ * The exact text of manifest.json or news.json. These are the bytes that get
+ * signed and that the launcher parses, so every writer goes through here.
+ */
+export function feedText(value) {
+  return `${JSON.stringify(value, null, 2)}\n`;
 }
 
 /** The value of `--name` in the arguments of the running script. */
