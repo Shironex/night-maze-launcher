@@ -12,8 +12,8 @@ React and TypeScript (`src`), and `src-tauri` joins the two. The game is a separ
 [`Shironex/night-maze`](https://github.com/Shironex/night-maze), and the two share no build.
 What they do share, the release files, is written down in [contract.md](contract.md).
 
-**Status: launcher 0.1.0 and 0.1.1 are released (2026-10-07, built and signed on the owner's
-PC), game 0.10.0 is released.** The owner installed 0.1.0 and updated it to 0.1.1 through the
+**Status: launcher 0.1.0 and 0.1.1 are released (2026-10-07, built and signed on my
+PC), game 0.10.0 is released.** I installed 0.1.0 and updated it to 0.1.1 through the
 button in Settings on one Windows 11 PC, then installed game 0.10.0 through the launcher and ran
 it. The source moved here from the `launcher/` folder of the game repository on the same day,
 with its history. From 0.1.2 on, releases are built by GitHub Actions
@@ -156,8 +156,8 @@ TAURI_SIGNING_PRIVATE_KEY="$(cat dev-keys/dev.key)" TAURI_SIGNING_PRIVATE_KEY_PA
 ```
 
 `src-tauri/tauri.unsigned.conf.json` is merged over `tauri.conf.json` by `--config` and
-switches off that one setting. The NSIS build takes about two and a half minutes on the
-owner's PC.
+switches off that one setting. The NSIS build takes about two and a half minutes on my
+PC.
 
 `src/bindings.ts` is generated from the Rust commands. After changing a command, a type it
 returns or an event, regenerate it with `UPDATE_BINDINGS=1 cargo test -p night-maze-launcher`
@@ -339,22 +339,25 @@ repository root, after steps 1 to 3 above.
 5. Write the notes and `latest.json`, with the installer under its release name next to it:
 
    ```powershell
-   node scripts/release-notes.mjs --version 0.1.2 | Set-Content -Encoding utf8 releases/latest-notes.md
-   node scripts/release-notes.mjs --version 0.1.2 --footer .github/release-footer.md | Set-Content -Encoding utf8 releases/release-notes.md
+   New-Item -ItemType Directory -Force releases | Out-Null
+   cmd /c "node scripts/release-notes.mjs --version 0.1.2 > releases/latest-notes.md"
+   cmd /c "node scripts/release-notes.mjs --version 0.1.2 --footer .github/release-footer.md > releases/release-notes.md"
    node scripts/build-latest.mjs --bundle target/release/bundle/nsis --version 0.1.2 --repo Shironex/night-maze-launcher --out releases/launcher-0.1.2 --notes "@releases/latest-notes.md"
    ```
+
+   `cmd` writes the bytes as they are; a PowerShell pipe would recode the text.
 
 6. Create the release as a draft, look at it, then publish it. Only a published release that
    is not a prerelease becomes "latest". The tag must be pushed already:
 
-   ```powershell
-   gh release create v0.1.2 --repo Shironex/night-maze-launcher --title "Night Maze Launcher 0.1.2" --notes-file releases/release-notes.md --draft --verify-tag releases/launcher-0.1.2/NightMazeLauncher-0.1.2-windows-x64-setup.exe releases/launcher-0.1.2/latest.json
-   gh release edit v0.1.2 --repo Shironex/night-maze-launcher --draft=false --latest
-   curl.exe -sL https://github.com/Shironex/night-maze-launcher/releases/latest/download/latest.json
-   ```
+```powershell
+gh release create v0.1.2 --repo Shironex/night-maze-launcher --title "Night Maze Launcher 0.1.2" --notes-file releases/release-notes.md --draft --verify-tag releases/launcher-0.1.2/NightMazeLauncher-0.1.2-windows-x64-setup.exe releases/launcher-0.1.2/latest.json
+gh release edit v0.1.2 --repo Shironex/night-maze-launcher --draft=false --latest
+curl.exe -sL https://github.com/Shironex/night-maze-launcher/releases/latest/download/latest.json
+```
 
-   A tag pushed for this would also start the workflow. Reject its approval request, or the
-   two would race for the same release.
+A tag pushed for this would also start the workflow. Reject its approval request, or the
+two would race for the same release.
 
 macOS: `build-latest.mjs` writes the Windows entry only and the workflow has no macOS job, so a
 macOS installer is not part of any release and `latest.json` has no macOS entry. The places to
@@ -362,7 +365,7 @@ extend are named in the header of `release.yml`.
 
 ## What has been run by hand
 
-On the evening of 2026-10-07, by the owner, on one Windows 11 PC: launcher 0.1.0 was released
+On the evening of 2026-10-07, by me, on one Windows 11 PC: launcher 0.1.0 was released
 and installed, 0.1.1 was released, and the installed 0.1.0 updated itself through the button in
 Settings (it downloaded, closed, installed and started again as 0.1.1, and reported "up to
 date"). Game 0.10.0 was then offered by the launcher, installed and started. Both repositories
@@ -379,14 +382,14 @@ Four minisign keys, all made with `pnpm tauri signer generate`, each with a pass
 have two backups in two different places, made on the day the keys were made, and each backup
 was proven by signing a test file from it. A lost password is a lost key.
 
-| Key          | Public half is in                                       | What it signs                                         | Where the private half is                                                                |
-| ------------ | ------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `updater-a`  | `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` | every launcher installer                              | the owner's machine, the backups, and GitHub: a secret of the `release` environment here |
-| `updater-b`  | `ROTATION_KEY` in `src-tauri/src/updater.rs`            | nothing; a spare, kept offline                        | the backups only                                                                         |
-| `manifest-a` | `RELEASE_KEYS[0]` in `crates/core/src/signature.rs`     | `manifest.json` and `news.json` of every game release | the owner's machine and the backups; see the game repository's docs for its workflow     |
-| `manifest-b` | `RELEASE_KEYS[1]` in `crates/core/src/signature.rs`     | nothing; a spare, kept offline                        | the backups only                                                                         |
+| Key          | Public half is in                                       | What it signs                                         | Where the private half is                                                       |
+| ------------ | ------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `updater-a`  | `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` | every launcher installer                              | my machine, the backups, and GitHub: a secret of the `release` environment here |
+| `updater-b`  | `ROTATION_KEY` in `src-tauri/src/updater.rs`            | nothing; a spare, kept offline                        | the backups only                                                                |
+| `manifest-a` | `RELEASE_KEYS[0]` in `crates/core/src/signature.rs`     | `manifest.json` and `news.json` of every game release | my machine and the backups; see the game repository's docs for its workflow     |
+| `manifest-b` | `RELEASE_KEYS[1]` in `crates/core/src/signature.rs`     | nothing; a spare, kept offline                        | the backups only                                                                |
 
-On the owner's machine the keys are outside every repository, in `%USERPROFILE%\.night-maze-keys`
+On my machine the keys are outside every repository, in `%USERPROFILE%\.night-maze-keys`
 (macOS: `~/.night-maze-keys`). They are never committed, and the file names are all this
 document says about them. The two B keys were removed from the machine after the backups were
 made.
@@ -456,7 +459,7 @@ halves into the config or the constants (keep the one key that stays); build and
 launcher signed with the key that installed copies still trust; check on a copy of the old
 version that the update installs; only then retire the old key.
 
-**Run once, on 2026-10-07, by the owner on one Windows 11 PC:** a real launcher update with key
+**Run once, on 2026-10-07, by me on one Windows 11 PC:** a real launcher update with key
 A (0.1.0 to 0.1.1; `requireSignedVersion` accepted the signatures) and a real release signature
 by manifest A (the `verify_manifest` example accepted the manifest of game 0.10.0, and the
 installed launcher then showed its notes and installed it).
@@ -468,7 +471,7 @@ release, signing with the key from the GitHub secret, and everything in
 ## Not done yet
 
 - **The release workflow has never run.** Not the rehearsal and not a tag. It was parsed as
-  YAML and read line by line, and what it runs was run on the owner's PC on 2026-10-07 with
+  YAML and read line by line, and what it runs was run on my PC on 2026-10-07 with
   the development key: the unsigned NSIS build with `tauri.unsigned.conf.json`, the signing
   command, `verify_file` (accepted with the development public key, refused with the key in
   the config) and `build-latest.mjs`. `verify_file` also accepted the published 0.1.1
