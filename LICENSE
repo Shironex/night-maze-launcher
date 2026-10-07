@@ -25,8 +25,10 @@ SOFTWARE.
 Game footage and icons are not covered
 
 The MIT licence above applies to the source code in this repository. The
-recorded game footage and the poster under `src/assets/` and the icons under
-`src-tauri/icons/` are not covered by it and remain all rights reserved.
+recorded game footage and the poster under `src/assets/`, the icons under
+`src-tauri/icons/` and the pictures of the README under `assets/showcase/`
+(which show that footage and that icon) are not covered by it and remain all
+rights reserved.
 Copying or reusing them needs the owner's permission.
 
 Third-party fonts and libraries keep their own licences; see
