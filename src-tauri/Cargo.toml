@@ -21,11 +21,21 @@ tauri-build = { workspace = true }
 [dependencies]
 night-maze-launcher-core = { workspace = true, features = ["specta"] }
 serde = { workspace = true }
+# Named by the code `tauri::generate_context!` writes for the `plugins` part
+# of `tauri.conf.json`, so it has to be a dependency of this crate.
+serde_json = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-single-instance = { workspace = true }
+tauri-plugin-updater = { workspace = true }
+rustls = { workspace = true }
 specta = { workspace = true }
 specta-typescript = { workspace = true }
 tauri-specta = { workspace = true }
+
+[dev-dependencies]
+# Tests only: check the two updater keys.
+minisign-verify = { workspace = true }
+base64 = { workspace = true }
 
 [lints]
 workspace = true
