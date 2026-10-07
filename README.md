@@ -8,9 +8,13 @@ It is a Tauri 2 application: the rules are a plain Rust library (`crates/core`),
 React and TypeScript (`src`), and `src-tauri` joins the two. It lives in this folder and shares
 nothing with the game's CMake build.
 
-**Status: first working version, tested on Windows 11 against a local test server only.**
-Nothing has been published and the launcher has never updated itself for real. See
-[Not done yet](#not-done-yet) and, for the first release, [Releasing](#releasing).
+**Status: working version, released on 2026-10-07 (launcher 0.1.0 and 0.1.1, game 0.10.0).**
+The owner built and signed both launcher releases on Windows and published them in
+`Shironex/night-maze-launcher`. He installed 0.1.0 and updated it to 0.1.1 through the button in
+Settings on one Windows 11 PC, then installed game 0.10.0 through the launcher and ran it. Still
+not tried: key rotation, the update on a clean second machine, SmartScreen on a PC that never saw
+the launcher, and anything on macOS. See [Not done yet](#not-done-yet) and, for later releases,
+[Releasing](#releasing).
 
 ## What it does
 
@@ -180,9 +184,10 @@ A build that starts but shows a black screen exits with 0 and is not caught.
 A game release holds one zip per system, `manifest.json`, `news.json` and the signature of each
 json file, `manifest.json.sig` and `news.json.sig`. They are written by
 `scripts/package-game.mjs` and `scripts/build-feed.mjs`, called from
-`.github/workflows/release.yml`. **That workflow has never run.** The workflow runs by hand only
-and leaves a draft release without the two `.sig` files: the owner signs the json files on his
-own PC and then publishes the draft (see [Releasing](#releasing)).
+`.github/workflows/release.yml`. **That workflow has never run**: the first releases (launcher
+0.1.0 and 0.1.1, game 0.10.0) were built and signed locally, as planned. The workflow runs by
+hand only and leaves a draft release without the two `.sig` files: the owner signs the json
+files on his own PC and then publishes the draft (see [Releasing](#releasing)).
 
 ```text
 NightMaze-0.9.0-windows-x64.zip        NightMaze-0.9.0-macos-arm64.zip
@@ -465,6 +470,14 @@ password with `read -rs` and `export`, as above.
 
 ## Before the first friend gets a link
 
+This list stays as the procedure for later releases. It was carried out for launcher 0.1.0 and
+0.1.1 on the evening of 2026-10-07, by the owner, on one Windows 11 PC: steps 2 to 5 (the update
+from 0.1.0 to 0.1.1 worked, the installed copy restarted as 0.1.1 and reported "up to date"),
+step 6 (the game repository is public since that evening) and step 7 (game 0.10.0 was offered,
+installed and started). Not covered: step 3 on a clean machine (and where the 0.1.0 installer
+was downloaded from was not recorded), and the SmartScreen warning of step 8 on a PC that never
+saw the launcher.
+
 1. Make sure `Shironex/night-maze-launcher` exists, is public and has at least one commit.
 2. Release launcher 0.1.0 (steps above).
 3. Install 0.1.0 from that public repository, on a clean machine if possible: download the
@@ -533,23 +546,24 @@ halves into the config or the constants (keep the one key that stays); build and
 launcher signed with the key that installed copies still trust; check on a copy of the old
 version that the update installs; only then retire the old key.
 
-**Never run:** a real launcher update (nothing is published, so no installed launcher has ever
-updated itself), a rotation of either pair, the second-key retry in `updater.rs` against a real
-release, the manual release workflow, and everything on macOS (the build, the launcher update,
-the ad hoc signed bundle, the game package).
+**Run once, on 2026-10-07, by the owner on one Windows 11 PC:** a real launcher update with key
+A (0.1.0 to 0.1.1; `requireSignedVersion` accepted the signatures) and a real release signature
+by manifest A (the `verify_manifest` example accepted the manifest of game 0.10.0, and the
+installed launcher then showed its notes and installed it).
+
+**Never run:** a rotation of either pair, the second-key retry in `updater.rs` against a real
+release, the update on a clean second machine, the manual release workflow, and everything on
+macOS (the build, the launcher update, the ad hoc signed bundle, the game package).
 
 ## Not done yet
 
-- **Nothing is published.** No tag, no release, and the game repository is private. The
-  launcher shows "offline" against the real address until the first release exists and the
-  repository is public.
-- **The release workflow has never run.** It was parsed as YAML and its scripts were run and
-  tested locally on Windows. The macOS job, the `if:` conditions and the publish step are
-  untested.
-- **The launcher has never updated itself for real.** The updater code, the signature check with
-  `requireSignedVersion`, the passive installer and the restart are written from the
-  documentation and tested in pieces. See
-  [Before the first friend gets a link](#before-the-first-friend-gets-a-link).
+- **The release workflow has never run.** The first releases were local. It was parsed as YAML
+  and its scripts were run and tested locally on Windows. The macOS job, the `if:` conditions
+  and the publish step are untested.
+- **The real update path was run once and only once.** On 2026-10-07 the owner updated an
+  installed 0.1.0 to 0.1.1 through the button in Settings on one Windows 11 PC (see
+  [Before the first friend gets a link](#before-the-first-friend-gets-a-link)). The update on a
+  clean second machine has not been tried.
 - **Key rotation has never been tried**, for either pair.
 - **macOS: everything.** The launcher has not been built or started on macOS. The transparent
   title bar (`src-tauri/tauri.macos.conf.json`), the ad hoc signature of the bundle, the
@@ -557,7 +571,13 @@ the ad hoc signed bundle, the game package).
   documentation only. The first release is Windows only.
 - **No code signing.** Windows SmartScreen will warn about the installer on first start. How it
   behaves, and whether antivirus software objects to a program that downloads and starts
-  another one, has not been tested on a clean PC.
+  another one, has not been tested on a PC that never saw the launcher.
+- **Dependabot alerts in `launcher/`.** Two are open: `source-map-js` (high, `pnpm-lock.yaml`)
+  and `glib` (medium, `Cargo.lock`). The automatic update runs for both failed.
+- **The window header says "Windows · macOS"** while only Windows ships. Left as it is for now.
+- **English READMEs for both repositories** are planned, including an explanation in the
+  launcher repository of why it is separate and the plan to move the launcher's source there
+  later.
 - **No language switch.** The window is English only.
 - **No link stack, no generated art.** The background is the placeholder scene drawn in SVG.
 - **Running copies.** The launcher does not look for a copy of the game that was started
