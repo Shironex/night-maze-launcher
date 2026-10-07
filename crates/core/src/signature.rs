@@ -97,6 +97,25 @@ pub fn matching_key<K: AsRef<str>>(
         .ok_or(CoreError::BadSignature)
 }
 
+/// The app version a signature is bound to: the `version:` field of its
+/// trusted comment. `tauri build` and `tauri signer sign --app-version` write
+/// it, and the updater's `requireSignedVersion` refuses an installer without
+/// it. `None` when the signature cannot be read or names no version.
+///
+/// The trusted comment is covered by the signature, but this function only
+/// reads it. The answer means something for a signature that [`verify`] has
+/// accepted, and nothing before that.
+pub fn signed_version(sig_text: &str) -> Option<String> {
+    let signature = Signature::decode(&minisign_text(sig_text)?).ok()?;
+    // Whole fields, split on the tab the CLI puts between them: a search for
+    // the text `version:0.1.1` would also find it inside `version:0.1.10`.
+    signature
+        .trusted_comment()
+        .split('\t')
+        .find_map(|field| field.strip_prefix("version:"))
+        .map(str::to_owned)
+}
+
 /// Undo the base64 layer the Tauri CLI puts around a minisign key or
 /// signature.
 fn minisign_text(wrapped: &str) -> Option<String> {
@@ -140,11 +159,15 @@ mod tests {
     /// The content of the `.sig` file the Tauri CLI would write for `bytes`:
     /// the same call with the same two comments, then base64 of the text.
     fn sign(pair: &KeyPair, bytes: &[u8]) -> String {
+        sign_with_comment(pair, bytes, "timestamp:1791280496\tfile:manifest.json")
+    }
+
+    fn sign_with_comment(pair: &KeyPair, bytes: &[u8], trusted_comment: &str) -> String {
         let signature = minisign::sign(
             None,
             &pair.sk,
             Cursor::new(bytes),
-            Some("timestamp:1791280496\tfile:manifest.json"),
+            Some(trusted_comment),
             Some("signature from tauri secret key"),
         )
         .expect("a signature");
@@ -289,6 +312,21 @@ mod tests {
             verify(CLI_SIGNED, CLI_SIGNATURE, &RELEASE_KEYS).is_err(),
             "the development key signs nothing a release build accepts"
         );
+    }
+
+    #[test]
+    fn the_signed_version_is_the_whole_version_field_of_the_trusted_comment() {
+        let pair = new_pair();
+        // The comment `tauri signer sign --app-version 0.1.10` writes.
+        let bound = sign_with_comment(
+            &pair,
+            MANIFEST,
+            "timestamp:1791390998\tfile:setup.exe\tversion:0.1.10",
+        );
+
+        assert_eq!(signed_version(&bound).as_deref(), Some("0.1.10"));
+        assert_eq!(signed_version(&sign(&pair, MANIFEST)), None);
+        assert_eq!(signed_version("not a signature"), None);
     }
 
     #[test]
