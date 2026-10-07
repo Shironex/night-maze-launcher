@@ -18,7 +18,8 @@
     "bindings": "cargo test -p night-maze-launcher the_committed_bindings_match_the_commands",
     "package-game": "node scripts/package-game.mjs",
     "serve": "node scripts/serve.mjs",
-    "notices": "node scripts/build-launcher-notices.mjs"
+    "notices": "node scripts/build-launcher-notices.mjs",
+    "showcase": "showcase all && showcase hero"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible-mono": "^5.3.0",
