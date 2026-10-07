@@ -73,6 +73,13 @@ const sections = [
     text: read(join(deps, 'stb-src', 'LICENSE')),
   },
   {
+    name: `miniaudio ${pinnedTag('mackron/miniaudio.git')}`,
+    url: 'https://miniaud.io',
+    // miniaudio offers two licences to choose from (public domain or MIT No
+    // Attribution). Neither asks for a notice. Its LICENSE file holds both texts.
+    text: read(join(deps, 'miniaudio-src', 'LICENSE')),
+  },
+  {
     name: `RmlUi ${pinnedTag('mikke89/RmlUi.git')}`,
     url: 'https://github.com/mikke89/RmlUi',
     text: read(join(deps, 'rmlui-src', 'LICENSE.txt')),
