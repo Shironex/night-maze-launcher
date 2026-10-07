@@ -10,6 +10,9 @@ import { TitleBar } from './components/TitleBar';
 import { useLauncher } from './state/store';
 import { deriveView, type Action } from './state/view';
 
+/** The systems a release exists for, shown in the header. Add a system here when it ships. */
+const PLATFORMS = ['Windows'];
+
 type Dialog = { kind: 'changelog'; version: string | null } | { kind: 'settings' } | null;
 
 export function App() {
@@ -46,7 +49,7 @@ export function App() {
           <div className="w-pub">
             Shironex
             <i />
-            <span>Windows · macOS</span>
+            <span>{PLATFORMS.join(' · ')}</span>
           </div>
           <h1 className="w-word">NIGHT MAZE</h1>
           <p className="w-tag">A stone maze at night. One flashlight. Find the crystals.</p>
