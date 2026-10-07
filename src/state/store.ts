@@ -6,7 +6,7 @@
 
 import { create } from 'zustand';
 import { commands, events, type Folder, type Progress, type Snapshot } from '../bindings';
-import type { Action, LauncherUpdateState } from './view';
+import { launcherRecheckAllowed, type Action, type LauncherUpdateState } from './view';
 
 interface LauncherStore {
   snapshot: Snapshot | null;
@@ -40,6 +40,12 @@ const NO_LAUNCHER_UPDATE: LauncherUpdateState = {
   progress: null,
   error: null,
 };
+
+/**
+ * How long an open launcher waits before it asks again for a newer launcher.
+ * A launcher that is left open for days still finds an update on the same day.
+ */
+const LAUNCHER_RECHECK_MS = 4 * 60 * 60 * 1000;
 
 /** A rejected command carries a sentence from the Rust side. */
 function message(error: unknown): string {
@@ -140,6 +146,12 @@ export const useLauncher = create<LauncherStore>((set, get) => {
         }
         if (checkOnStart) await get().checkLauncherUpdate(true);
       })();
+      // Asked again while the launcher stays open, as quietly as on start. The
+      // setting and the activity are read at that moment, not now.
+      setInterval(() => {
+        const { snapshot, launcher } = get();
+        if (launcherRecheckAllowed(snapshot, launcher)) void get().checkLauncherUpdate(true);
+      }, LAUNCHER_RECHECK_MS);
       if (gameCheck) await check();
       await own;
     },

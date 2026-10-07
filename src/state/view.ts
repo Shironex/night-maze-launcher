@@ -180,6 +180,21 @@ function launcherToast(input: ViewInput): ToastView | undefined {
   };
 }
 
+/**
+ * Whether the launcher may ask for a newer launcher by itself, some hours
+ * after it was started: only when the check on start is switched on, and
+ * never while the game runs, while anything is being downloaded or installed,
+ * or while a check is already running.
+ */
+export function launcherRecheckAllowed(
+  snapshot: Snapshot | null,
+  launcher: LauncherUpdateState
+): boolean {
+  if (launcher.checking || launcher.installing) return false;
+  if (!snapshot) return true;
+  return snapshot.check_on_start && snapshot.activity.kind === 'idle';
+}
+
 function stateView(input: ViewInput): View {
   const { snapshot, progress, checking, error, fatal } = input;
   const newer = newerLauncher(input.launcher);

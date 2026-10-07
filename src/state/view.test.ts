@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { Snapshot } from '../bindings';
-import { deriveView, launcherStatusText, type LauncherUpdateState, type ViewInput } from './view';
+import {
+  deriveView,
+  launcherRecheckAllowed,
+  launcherStatusText,
+  type LauncherUpdateState,
+  type ViewInput,
+} from './view';
 
 const MEGABYTE = 1024 * 1024;
 
@@ -431,6 +437,39 @@ describe('the launcher update toast', () => {
       update: { label: 'Try again', icon: 'retry', busy: false },
     });
     expect(failed.cta.action).toEqual({ type: 'launch' });
+  });
+});
+
+describe('launcherRecheckAllowed', () => {
+  it('allows the check while nothing runs, also without a snapshot', () => {
+    expect(launcherRecheckAllowed(INSTALLED, NO_LAUNCHER_UPDATE)).toBe(true);
+    expect(launcherRecheckAllowed(INSTALLED, NEWER_LAUNCHER)).toBe(true);
+    expect(launcherRecheckAllowed(null, NO_LAUNCHER_UPDATE)).toBe(true);
+  });
+
+  it('refuses while the game runs or is being downloaded and installed', () => {
+    const running: Snapshot = {
+      ...INSTALLED,
+      activity: { kind: 'running', version: '0.9.0', pid: 42 },
+    };
+    const installing: Snapshot = {
+      ...INSTALLED,
+      activity: { kind: 'installing', version: '0.9.1' },
+    };
+    expect(launcherRecheckAllowed(running, NO_LAUNCHER_UPDATE)).toBe(false);
+    expect(launcherRecheckAllowed(installing, NO_LAUNCHER_UPDATE)).toBe(false);
+  });
+
+  it('refuses while the launcher is checking or downloading its own update', () => {
+    const checking = { ...NO_LAUNCHER_UPDATE, checking: true };
+    const downloading = { ...NEWER_LAUNCHER, installing: true };
+    expect(launcherRecheckAllowed(INSTALLED, checking)).toBe(false);
+    expect(launcherRecheckAllowed(INSTALLED, downloading)).toBe(false);
+  });
+
+  it('refuses when the check on start is switched off', () => {
+    const off: Snapshot = { ...INSTALLED, check_on_start: false };
+    expect(launcherRecheckAllowed(off, NEWER_LAUNCHER)).toBe(false);
   });
 });
 
