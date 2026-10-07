@@ -8,7 +8,13 @@
 // Every state has a text label and its own icon. None is told apart by colour
 // alone.
 
-import type { LocalNotice, Progress, Snapshot } from '../bindings';
+import type {
+  LauncherUpdate,
+  LauncherUpdateProgress,
+  LocalNotice,
+  Progress,
+  Snapshot,
+} from '../bindings';
 import { megabytes, megabytesOf, percent } from '../lib/format';
 import type { IconName } from '../components/Icon';
 
@@ -19,6 +25,7 @@ export type Action =
   | { type: 'open_logs' }
   | { type: 'copy_log_path' }
   | { type: 'dismiss'; id: string }
+  | { type: 'update_launcher' }
   | { type: 'clear_error' };
 
 export interface PillView {
@@ -65,6 +72,19 @@ export interface View {
   secondary?: { label: string; icon: IconName; action: Action };
 }
 
+/** The launcher's own update, as the Rust side last reported it. */
+export interface LauncherUpdateState {
+  /** What the last check found. Null before the first check has finished. */
+  update: LauncherUpdate | null;
+  /** A check is running. */
+  checking: boolean;
+  /** The new launcher is being downloaded. The launcher restarts after it. */
+  installing: boolean;
+  progress: LauncherUpdateProgress | null;
+  /** Why the last check or install failed, as a sentence. */
+  error: string | null;
+}
+
 export interface ViewInput {
   snapshot: Snapshot | null;
   progress: Progress | null;
@@ -74,6 +94,8 @@ export interface ViewInput {
   error: string | null;
   /** Why the launcher could not open its own state at all. */
   fatal: string | null;
+  /** Left out, the launcher's own update plays no part in the view. */
+  launcher?: LauncherUpdateState;
 }
 
 const LOG_ACTIONS: NoticeView['actions'] = [
@@ -82,9 +104,35 @@ const LOG_ACTIONS: NoticeView['actions'] = [
 ];
 
 export function deriveView(input: ViewInput): View {
+  const view = stateView(input);
+  // While the new launcher downloads, the main button shows that and nothing
+  // else can be started: the launcher restarts as soon as the download is in.
+  if (input.launcher?.installing) {
+    return { ...view, cta: launcherBusy(input.launcher.progress), secondary: undefined };
+  }
+  return view;
+}
+
+function stateView(input: ViewInput): View {
   const { snapshot, progress, checking, error, fatal } = input;
+  const newer = newerLauncher(input.launcher);
 
   if (fatal || !snapshot) {
+    // A launcher that cannot open its own state may be fixed by a newer one,
+    // and the update does not need that state.
+    if (fatal && newer) {
+      return {
+        pill: { tone: 'warn', icon: 'warning', text: 'launcher problem' },
+        notice: {
+          tone: 'warn',
+          icon: 'warning',
+          text: 'The launcher could not start.',
+          dim: `${sentence(fatal)} Launcher ${newer} is ready to install.`,
+          actions: [],
+        },
+        cta: launcherCta(`v${newer}`),
+      };
+    }
     return {
       pill: fatal
         ? { tone: 'warn', icon: 'warning', text: 'launcher problem' }
@@ -115,7 +163,7 @@ export function deriveView(input: ViewInput): View {
     };
   }
   if (!current) {
-    return firstRunView(snapshot, checking, error);
+    return firstRunView(snapshot, checking, error, input.launcher);
   }
 
   const launch: CtaView = {
@@ -175,6 +223,18 @@ export function deriveView(input: ViewInput): View {
         secondary: { label: `Launch v${current}`, icon: 'play', action: { type: 'launch' } },
       };
     case 'launcher_too_old':
+      if (newer) {
+        return {
+          pill: { tone: 'warn', icon: 'upload', text: 'launcher update needed' },
+          notice: launcherNotice(
+            input.launcher,
+            `This launcher (${snapshot.launcher_version}) is too old to install newer game versions.`,
+            `Launcher ${newer} is ready to install. Version ${current} still starts.`
+          ),
+          cta: launcherCta(`v${snapshot.launcher_version} → v${newer}`),
+          secondary: { label: `Launch v${current}`, icon: 'play', action: { type: 'launch' } },
+        };
+      }
       return {
         pill: { tone: 'warn', icon: 'upload', text: 'launcher update needed' },
         notice: {
@@ -248,8 +308,82 @@ function installingView(version: string, current: string | null, progress: Progr
   };
 }
 
-function firstRunView(snapshot: Snapshot, checking: boolean, error: string | null): View {
+/** The version of a newer launcher that can be installed, if the last check found one. */
+function newerLauncher(launcher: LauncherUpdateState | undefined): string | null {
+  return launcher?.update?.kind === 'available' ? launcher.update.version : null;
+}
+
+/** The main button when a newer launcher is the way forward. */
+function launcherCta(sub: string): CtaView {
+  return {
+    style: 'primary',
+    icon: 'upload',
+    title: 'Update launcher',
+    sub,
+    action: { type: 'update_launcher' },
+  };
+}
+
+/** The main button while the new launcher is being downloaded. */
+function launcherBusy(progress: LauncherUpdateProgress | null): CtaView {
+  const received = progress?.received ?? 0;
+  const total = progress?.total ?? 0;
+  const done = percent(received, total);
+  return {
+    style: 'busy',
+    icon: 'upload',
+    title: `Updating launcher ${done}%`,
+    sub: total > 0 ? megabytesOf(received, total) : 'connecting',
+    percent: done,
+  };
+}
+
+/**
+ * The notice of a launcher that is too old while a newer one can be
+ * installed. A failed try replaces the explanation, as the answer to the
+ * button that was just pressed.
+ */
+function launcherNotice(
+  launcher: LauncherUpdateState | undefined,
+  text: string,
+  dim: string
+): NoticeView {
+  if (launcher?.error) {
+    return {
+      tone: 'warn',
+      icon: 'warning',
+      text: sentence(launcher.error),
+      dim: 'The launcher was not changed.',
+      actions: [{ label: 'Try again', action: { type: 'update_launcher' } }],
+    };
+  }
+  return { tone: 'warn', icon: 'upload', text, dim, actions: [] };
+}
+
+/** The line under "Launcher version" in the settings. */
+export function launcherStatusText(version: string, launcher: LauncherUpdateState): string {
+  const { update, progress } = launcher;
+  if (launcher.installing) {
+    const received = progress?.received ?? 0;
+    const total = progress?.total ?? 0;
+    return total > 0
+      ? `${version} · downloading the update, ${percent(received, total)}% (${megabytesOf(received, total)})`
+      : `${version} · downloading the update`;
+  }
+  if (launcher.checking) return `${version} · checking for updates`;
+  if (update?.kind === 'available') return `${version} · version ${update.version} is available`;
+  if (update?.kind === 'none') return `${version} · up to date`;
+  return version;
+}
+
+function firstRunView(
+  snapshot: Snapshot,
+  checking: boolean,
+  error: string | null,
+  launcher: LauncherUpdateState | undefined
+): View {
   const { remote } = snapshot;
+  const newer = newerLauncher(launcher);
   const pill: PillView = { tone: 'warn', icon: 'offline', text: 'not installed' };
   const disabled = (sub: string): CtaView => ({
     style: 'off',
@@ -296,6 +430,17 @@ function firstRunView(snapshot: Snapshot, checking: boolean, error: string | nul
     };
   }
   if (remote.kind === 'launcher_too_old') {
+    if (newer) {
+      return {
+        pill: { tone: 'warn', icon: 'upload', text: 'launcher update needed' },
+        notice: launcherNotice(
+          launcher,
+          `This launcher (${snapshot.launcher_version}) is too old to install the game.`,
+          `Launcher ${newer} is ready to install.`
+        ),
+        cta: launcherCta(`v${snapshot.launcher_version} → v${newer}`),
+      };
+    }
     return {
       pill: { tone: 'warn', icon: 'upload', text: 'launcher update needed' },
       notice: {
@@ -331,7 +476,7 @@ function firstRunView(snapshot: Snapshot, checking: boolean, error: string | nul
 }
 
 /** Text from the Rust side as a sentence: it arrives without a final full stop. */
-function sentence(text: string): string {
+export function sentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 

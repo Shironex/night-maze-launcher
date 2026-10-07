@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Snapshot } from '../bindings';
-import { deriveView, type ViewInput } from './view';
+import { deriveView, launcherStatusText, type LauncherUpdateState, type ViewInput } from './view';
 
 const MEGABYTE = 1024 * 1024;
 
@@ -17,6 +17,20 @@ const INSTALLED: Snapshot = {
   notes: null,
   feed: null,
   notices: [],
+};
+
+/** The launcher's own update with nothing found and nothing running. */
+const NO_LAUNCHER_UPDATE: LauncherUpdateState = {
+  update: { kind: 'none' },
+  checking: false,
+  installing: false,
+  progress: null,
+  error: null,
+};
+
+const NEWER_LAUNCHER: LauncherUpdateState = {
+  ...NO_LAUNCHER_UPDATE,
+  update: { kind: 'available', version: '0.2.0', notes: null },
 };
 
 function view(snapshot: Partial<Snapshot>, rest: Partial<ViewInput> = {}) {
@@ -174,6 +188,128 @@ describe('deriveView', () => {
     expect(tooOld.cta.action).toEqual({ type: 'launch' });
   });
 
+  it('launcher too old without a newer launcher found keeps Launch and the hint', () => {
+    const tooOld = view(
+      { remote: { kind: 'launcher_too_old', required: '0.2.0' } },
+      { launcher: NO_LAUNCHER_UPDATE }
+    );
+    expect(tooOld.notice?.dim).toContain('Get launcher 0.2.0 or newer');
+    expect(tooOld.cta).toMatchObject({ title: 'Launch', action: { type: 'launch' } });
+    expect(tooOld.secondary).toBeUndefined();
+  });
+
+  it('launcher too old with a newer launcher: the main button updates the launcher', () => {
+    const tooOld = view(
+      { remote: { kind: 'launcher_too_old', required: '0.2.0' } },
+      { launcher: NEWER_LAUNCHER }
+    );
+    expect(tooOld.pill.text).toBe('launcher update needed');
+    expect(tooOld.cta).toMatchObject({
+      style: 'primary',
+      title: 'Update launcher',
+      sub: 'v0.1.0 → v0.2.0',
+      action: { type: 'update_launcher' },
+    });
+    expect(tooOld.notice?.dim).toBe(
+      'Launcher 0.2.0 is ready to install. Version 0.9.0 still starts.'
+    );
+    // The installed game still starts, from the smaller button.
+    expect(tooOld.secondary).toMatchObject({ label: 'Launch v0.9.0', action: { type: 'launch' } });
+  });
+
+  it('first run with a launcher that is too old offers the launcher update', () => {
+    const firstRun = view(
+      { current: null, remote: { kind: 'launcher_too_old', required: '0.2.0' } },
+      { launcher: NEWER_LAUNCHER }
+    );
+    expect(firstRun.cta).toMatchObject({
+      title: 'Update launcher',
+      action: { type: 'update_launcher' },
+    });
+    expect(firstRun.secondary).toBeUndefined();
+
+    const withoutUpdate = view({
+      current: null,
+      remote: { kind: 'launcher_too_old', required: '0.2.0' },
+    });
+    expect(withoutUpdate.cta).toMatchObject({ style: 'off', sub: 'launcher too old' });
+  });
+
+  it('a newer launcher changes nothing while the game can still be updated', () => {
+    const update = view(
+      { remote: { kind: 'update_available', version: '0.9.1', size: MEGABYTE } },
+      { launcher: NEWER_LAUNCHER }
+    );
+    expect(update.cta).toMatchObject({ title: 'Update', action: { type: 'install' } });
+
+    const ready = view({}, { launcher: NEWER_LAUNCHER });
+    expect(ready.cta).toMatchObject({ title: 'Launch', action: { type: 'launch' } });
+  });
+
+  it('while the new launcher downloads the main button shows it and starts nothing', () => {
+    const downloading = view(
+      { remote: { kind: 'launcher_too_old', required: '0.2.0' } },
+      {
+        launcher: {
+          ...NEWER_LAUNCHER,
+          installing: true,
+          progress: { received: 2.5 * MEGABYTE, total: 5 * MEGABYTE },
+        },
+      }
+    );
+    expect(downloading.cta).toMatchObject({
+      style: 'busy',
+      title: 'Updating launcher 50%',
+      sub: '2.5 of 5.0 MB',
+      percent: 50,
+    });
+    expect(downloading.cta.action).toBeUndefined();
+    expect(downloading.secondary).toBeUndefined();
+
+    // Started from the settings while the game is up to date: Launch is gone too.
+    const fromSettings = view({}, { launcher: { ...NEWER_LAUNCHER, installing: true } });
+    expect(fromSettings.cta).toMatchObject({
+      style: 'busy',
+      title: 'Updating launcher 0%',
+      sub: 'connecting',
+    });
+    expect(fromSettings.cta.action).toBeUndefined();
+  });
+
+  it('a failed launcher update is explained and can be tried again', () => {
+    const failed = view(
+      { remote: { kind: 'launcher_too_old', required: '0.2.0' } },
+      { launcher: { ...NEWER_LAUNCHER, error: 'Close the game first, then update the launcher' } }
+    );
+    expect(failed.notice).toMatchObject({
+      tone: 'warn',
+      text: 'Close the game first, then update the launcher.',
+    });
+    expect(failed.notice?.actions).toEqual([
+      { label: 'Try again', action: { type: 'update_launcher' } },
+    ]);
+    expect(failed.cta.action).toEqual({ type: 'update_launcher' });
+  });
+
+  it('a launcher that could not start offers a newer launcher when there is one', () => {
+    const broken = deriveView({
+      snapshot: null,
+      progress: null,
+      checking: false,
+      error: null,
+      fatal: 'Could not read the state file',
+      launcher: NEWER_LAUNCHER,
+    });
+    expect(broken.cta).toMatchObject({
+      title: 'Update launcher',
+      sub: 'v0.2.0',
+      action: { type: 'update_launcher' },
+    });
+    expect(broken.notice?.dim).toBe(
+      'Could not read the state file. Launcher 0.2.0 is ready to install.'
+    );
+  });
+
   it('running: the button is disabled while the game is open', () => {
     const running = view({ activity: { kind: 'running', version: '0.9.0', pid: 42 } });
     expect(running.pill.text).toBe('v 0.9.0 · running');
@@ -200,5 +336,28 @@ describe('deriveView', () => {
     });
     expect(broken.notice).toMatchObject({ tone: 'warn', dim: 'Could not read the state file' });
     expect(broken.cta.action).toBeUndefined();
+  });
+});
+
+describe('launcherStatusText', () => {
+  it('says what the last check found, next to the version', () => {
+    const idle = { ...NO_LAUNCHER_UPDATE, update: null };
+    expect(launcherStatusText('0.1.0', idle)).toBe('0.1.0');
+    expect(launcherStatusText('0.1.0', { ...idle, checking: true })).toBe(
+      '0.1.0 · checking for updates'
+    );
+    expect(launcherStatusText('0.1.0', NO_LAUNCHER_UPDATE)).toBe('0.1.0 · up to date');
+    expect(launcherStatusText('0.1.0', NEWER_LAUNCHER)).toBe('0.1.0 · version 0.2.0 is available');
+  });
+
+  it('shows the download as percent and megabytes', () => {
+    const downloading = { ...NEWER_LAUNCHER, installing: true };
+    expect(launcherStatusText('0.1.0', downloading)).toBe('0.1.0 · downloading the update');
+    expect(
+      launcherStatusText('0.1.0', {
+        ...downloading,
+        progress: { received: 2.5 * MEGABYTE, total: 5 * MEGABYTE },
+      })
+    ).toBe('0.1.0 · downloading the update, 50% (2.5 of 5.0 MB)');
   });
 });
