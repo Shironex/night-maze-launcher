@@ -2,9 +2,38 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { buildLatest, installerAssetName, installerUrl } from './latest.mjs';
+import { buildLatest, changelogSection, installerAssetName, installerUrl } from './latest.mjs';
 
 const SIGNATURE = 'dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZQ==';
+
+test('the notes of a version are its changelog section and nothing else', () => {
+  const changelog = [
+    '# Changelog',
+    '',
+    '## 0.1.10 (2026-11-01)',
+    '',
+    'Ten.',
+    '',
+    '## 0.1.1 (2026-10-07) Update test',
+    '',
+    'First line.',
+    '',
+    '### Fixes',
+    '',
+    '- A fix',
+    '',
+    '## 0.1.0',
+    '',
+    '## 0.0.9',
+    'Old.',
+  ].join('\r\n');
+
+  assert.equal(changelogSection(changelog, '0.1.1'), 'First line.\n\n### Fixes\n\n- A fix');
+  assert.equal(changelogSection(changelog, '0.1.10'), 'Ten.');
+  assert.equal(changelogSection(changelog, '0.0.9'), 'Old.');
+  assert.throws(() => changelogSection(changelog, '0.1.2'), /no section for version 0\.1\.2/);
+  assert.throws(() => changelogSection(changelog, '0.1.0'), /empty/);
+});
 
 test('latest.json has the shape the updater reads, with only the Windows platform', () => {
   const latest = buildLatest({

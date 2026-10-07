@@ -4,7 +4,7 @@
 // Only the Windows platform is written: the updater validates every platform
 // entry of the file, so a platform that is not shipped must be absent.
 
-import { isVersion } from './feed.mjs';
+import { isVersion, VERSION_HEADING } from './feed.mjs';
 
 export const PLATFORM = 'windows-x86_64';
 
@@ -20,6 +20,27 @@ export function installerUrl(repo, version) {
     throw new Error(`not a repository, expected owner/name: ${repo}`);
   }
   return `https://github.com/${repo}/releases/download/v${version}/${installerAssetName(version)}`;
+}
+
+/**
+ * The notes of `version`: the text of its section in the launcher's
+ * CHANGELOG.md, from below its `## <version>` heading to the next version
+ * heading. The headings are the ones `parseChangelog` understands. Throws
+ * when the section is missing or empty, so a release cannot go out without
+ * notes.
+ */
+export function changelogSection(markdown, version) {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const start = lines.findIndex(line => VERSION_HEADING.exec(line.trim())?.[1] === version);
+  if (start === -1) throw new Error(`the changelog has no section for version ${version}.`);
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex(line => VERSION_HEADING.test(line.trim()));
+  const text = rest
+    .slice(0, end === -1 ? rest.length : end)
+    .join('\n')
+    .trim();
+  if (!text) throw new Error(`the changelog section for version ${version} is empty.`);
+  return text;
 }
 
 /**
