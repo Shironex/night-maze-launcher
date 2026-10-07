@@ -339,6 +339,101 @@ describe('deriveView', () => {
   });
 });
 
+describe('the launcher update toast', () => {
+  const TOO_OLD: Partial<Snapshot> = { remote: { kind: 'launcher_too_old', required: '0.2.0' } };
+
+  it('offers a newer launcher with its version', () => {
+    const { toast } = view({}, { launcher: NEWER_LAUNCHER });
+    expect(toast).toEqual({
+      tone: 'quiet',
+      icon: 'upload',
+      text: 'Launcher 0.2.0 is available.',
+      dim: 'The launcher restarts to install it.',
+      update: { label: 'Update launcher', icon: 'upload', busy: false },
+      version: '0.2.0',
+    });
+  });
+
+  it('is shown next to a game update too', () => {
+    const update = view(
+      { remote: { kind: 'update_available', version: '0.9.1', size: MEGABYTE } },
+      { launcher: NEWER_LAUNCHER }
+    );
+    expect(update.toast?.text).toBe('Launcher 0.2.0 is available.');
+    expect(update.cta.action).toEqual({ type: 'install' });
+  });
+
+  it('is not shown without a newer launcher, before a check or after a quiet failed one', () => {
+    expect(view({}).toast).toBeUndefined();
+    expect(view({}, { launcher: NO_LAUNCHER_UPDATE }).toast).toBeUndefined();
+    expect(view({}, { launcher: { ...NO_LAUNCHER_UPDATE, update: null } }).toast).toBeUndefined();
+  });
+
+  it('stays closed for the version it was closed for, and comes back for a newer one', () => {
+    const closed = view({}, { launcher: NEWER_LAUNCHER, dismissedLauncher: '0.2.0' });
+    expect(closed.toast).toBeUndefined();
+
+    const newer = view({}, { launcher: NEWER_LAUNCHER, dismissedLauncher: '0.1.9' });
+    expect(newer.toast?.version).toBe('0.2.0');
+  });
+
+  it('is left out where the main button already offers the launcher update', () => {
+    const tooOld = view(TOO_OLD, { launcher: NEWER_LAUNCHER });
+    expect(tooOld.cta.action).toEqual({ type: 'update_launcher' });
+    expect(tooOld.toast).toBeUndefined();
+
+    const broken = deriveView({
+      snapshot: null,
+      progress: null,
+      checking: false,
+      error: null,
+      fatal: 'Could not read the state file',
+      launcher: NEWER_LAUNCHER,
+    });
+    expect(broken.cta.action).toEqual({ type: 'update_launcher' });
+    expect(broken.toast).toBeUndefined();
+  });
+
+  it('is not shown while the game runs or is being installed', () => {
+    const running = view(
+      { activity: { kind: 'running', version: '0.9.0', pid: 42 } },
+      { launcher: NEWER_LAUNCHER }
+    );
+    expect(running.toast).toBeUndefined();
+
+    const installing = view(
+      { activity: { kind: 'installing', version: '0.9.1' } },
+      { launcher: NEWER_LAUNCHER }
+    );
+    expect(installing.toast).toBeUndefined();
+  });
+
+  it('stays while the new launcher downloads, with its button disabled', () => {
+    const downloading = view({}, { launcher: { ...NEWER_LAUNCHER, installing: true } });
+    expect(downloading.toast).toMatchObject({
+      text: 'Downloading launcher 0.2.0.',
+      update: { busy: true },
+    });
+    // The progress is on the main button, as it is when started from the settings.
+    expect(downloading.cta).toMatchObject({ style: 'busy', title: 'Updating launcher 0%' });
+  });
+
+  it('a failed update is explained in the toast and can be tried again', () => {
+    const failed = view(
+      {},
+      { launcher: { ...NEWER_LAUNCHER, error: 'Could not reach the launcher update server' } }
+    );
+    expect(failed.toast).toMatchObject({
+      tone: 'warn',
+      icon: 'warning',
+      text: 'Could not reach the launcher update server.',
+      dim: 'The launcher was not changed.',
+      update: { label: 'Try again', icon: 'retry', busy: false },
+    });
+    expect(failed.cta.action).toEqual({ type: 'launch' });
+  });
+});
+
 describe('launcherStatusText', () => {
   it('says what the last check found, next to the version', () => {
     const idle = { ...NO_LAUNCHER_UPDATE, update: null };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChangelogModal } from './components/ChangelogModal';
 import { Icon } from './components/Icon';
+import { LauncherToast } from './components/LauncherToast';
 import { MainButton } from './components/MainButton';
 import { ReleasePanel } from './components/ReleasePanel';
 import { Scene, SceneDefs } from './components/Scene';
@@ -22,6 +23,7 @@ export function App() {
   const error = useLauncher(store => store.error);
   const fatal = useLauncher(store => store.fatal);
   const launcher = useLauncher(store => store.launcher);
+  const dismissedLauncher = useLauncher(store => store.dismissedLauncher);
   const start = useLauncher(store => store.start);
   const run = useLauncher(store => store.run);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -31,8 +33,8 @@ export function App() {
   }, [start]);
 
   const view = useMemo(
-    () => deriveView({ snapshot, progress, checking, error, fatal, launcher }),
-    [snapshot, progress, checking, error, fatal, launcher]
+    () => deriveView({ snapshot, progress, checking, error, fatal, launcher, dismissedLauncher }),
+    [snapshot, progress, checking, error, fatal, launcher, dismissedLauncher]
   );
   const onAction = useCallback((action: Action) => void run(action), [run]);
   const closeDialog = useCallback(() => setDialog(null), []);
@@ -45,6 +47,8 @@ export function App() {
 
       {/* While a dialog is open the window behind it is out of reach. */}
       <main inert={dialog !== null}>
+        {/* First in the window, so it is the first stop of the Tab key. */}
+        {view.toast && <LauncherToast toast={view.toast} onAction={onAction} />}
         <div className="w-id">
           <div className="w-pub">
             Shironex

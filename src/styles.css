@@ -696,6 +696,61 @@ button.rel:hover {
   background: var(--l-deep);
 }
 
+/* ---- toast: a newer launcher, top right under the window buttons ---------- */
+.toast {
+  position: absolute;
+  right: 1.6em;
+  top: 3.8em;
+  width: 27em;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-color: var(--l-edge);
+}
+.toast > .ico {
+  color: var(--l-amber);
+}
+.toast .sbtn .ico {
+  color: inherit;
+  margin: 0;
+}
+.toast .acts {
+  margin-top: 0.3em;
+}
+.toast .sbtn {
+  height: 2.6em;
+  font-size: 1em;
+}
+.t-x {
+  width: 2em;
+  height: 2em;
+  margin: -0.3em -0.4em 0 0;
+  border-radius: 0.5em;
+  display: grid;
+  place-items: center;
+}
+.t-x:hover {
+  background: var(--l-slate);
+}
+.toast .t-x .ico {
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0;
+  color: var(--l-dim);
+}
+.toast .t-x:hover .ico {
+  color: var(--l-moon);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toast {
+    animation: toast-in 0.25s ease-out;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.6em;
+  }
+}
+
 /* ---- modals --------------------------------------------------------------- */
 .w-dim {
   position: absolute;

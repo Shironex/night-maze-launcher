@@ -16,6 +16,12 @@ interface LauncherStore {
   fatal: string | null;
   /** The launcher's own update. It does not depend on anything above. */
   launcher: LauncherUpdateState;
+  /**
+   * The launcher version whose toast was closed. Kept in memory only, so the
+   * toast is back on the next start, and earlier when a still newer launcher
+   * is found.
+   */
+  dismissedLauncher: string | null;
 
   /** Read the local state, subscribe to events, and check for updates. */
   start: () => Promise<void>;
@@ -92,6 +98,7 @@ export const useLauncher = create<LauncherStore>((set, get) => {
     error: null,
     fatal: null,
     launcher: NO_LAUNCHER_UPDATE,
+    dismissedLauncher: null,
 
     start: async () => {
       if (started) return;
@@ -164,6 +171,9 @@ export const useLauncher = create<LauncherStore>((set, get) => {
           return;
         case 'update_launcher':
           return get().installLauncherUpdate();
+        case 'dismiss_launcher_update':
+          set({ dismissedLauncher: action.version });
+          return;
       }
     },
 

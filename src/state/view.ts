@@ -1,9 +1,10 @@
 // What the window shows for a given launcher state.
 //
 // Only three regions change between states: the version pill, the notice line
-// and the main button. This file turns a snapshot from the Rust side into the
-// text, icon and action of each. It is a pure function, so every state has a
-// test and none depends on a running launcher.
+// and the main button. A fourth, the toast, comes and goes with the launcher's
+// own update. This file turns a snapshot from the Rust side into the text,
+// icon and action of each. It is a pure function, so every state has a test
+// and none depends on a running launcher.
 //
 // Every state has a text label and its own icon. None is told apart by colour
 // alone.
@@ -26,6 +27,7 @@ export type Action =
   | { type: 'copy_log_path' }
   | { type: 'dismiss'; id: string }
   | { type: 'update_launcher' }
+  | { type: 'dismiss_launcher_update'; version: string }
   | { type: 'clear_error' };
 
 export interface PillView {
@@ -63,6 +65,23 @@ export interface CtaView {
   action?: Action;
 }
 
+/** The toast that offers a newer launcher. */
+export interface ToastView {
+  /** `warn` after an update that failed. */
+  tone: 'warn' | 'quiet';
+  icon: IconName;
+  text: string;
+  /** A second, quieter sentence. */
+  dim: string;
+  /** The button that installs the newer launcher. Disabled while it downloads. */
+  update: { label: string; icon: IconName; busy: boolean };
+  /**
+   * The version on offer: closing the toast hides it for this version. A
+   * download cannot be closed, so that a failure is always seen.
+   */
+  version: string;
+}
+
 export interface View {
   pill: PillView;
   notice?: NoticeView;
@@ -70,6 +89,7 @@ export interface View {
   cta: CtaView;
   /** A smaller button left of the main one. */
   secondary?: { label: string; icon: IconName; action: Action };
+  toast?: ToastView;
 }
 
 /** The launcher's own update, as the Rust side last reported it. */
@@ -96,6 +116,8 @@ export interface ViewInput {
   fatal: string | null;
   /** Left out, the launcher's own update plays no part in the view. */
   launcher?: LauncherUpdateState;
+  /** The launcher version whose toast was closed since this launcher started. */
+  dismissedLauncher?: string | null;
 }
 
 const LOG_ACTIONS: NoticeView['actions'] = [
@@ -104,13 +126,58 @@ const LOG_ACTIONS: NoticeView['actions'] = [
 ];
 
 export function deriveView(input: ViewInput): View {
-  const view = stateView(input);
+  const view = { ...stateView(input), toast: launcherToast(input) };
   // While the new launcher downloads, the main button shows that and nothing
   // else can be started: the launcher restarts as soon as the download is in.
   if (input.launcher?.installing) {
     return { ...view, cta: launcherBusy(input.launcher.progress), secondary: undefined };
   }
   return view;
+}
+
+/**
+ * The toast for a newer launcher, when there is one to show.
+ *
+ * Not shown where the main button already offers the same update (a launcher
+ * that is too old or could not start), not while the game runs or is being
+ * installed, because the launcher cannot be replaced then, and not for a
+ * version whose toast was closed.
+ */
+function launcherToast(input: ViewInput): ToastView | undefined {
+  const { snapshot, launcher } = input;
+  const version = newerLauncher(launcher);
+  if (!launcher || !version || version === input.dismissedLauncher) return undefined;
+  if (input.fatal || !snapshot || snapshot.remote.kind === 'launcher_too_old') return undefined;
+  if (snapshot.activity.kind !== 'idle') return undefined;
+
+  if (launcher.installing) {
+    return {
+      tone: 'quiet',
+      icon: 'upload',
+      text: `Downloading launcher ${version}.`,
+      dim: 'The launcher restarts when it is done.',
+      update: { label: 'Update launcher', icon: 'upload', busy: true },
+      version,
+    };
+  }
+  if (launcher.error) {
+    return {
+      tone: 'warn',
+      icon: 'warning',
+      text: sentence(launcher.error),
+      dim: 'The launcher was not changed.',
+      update: { label: 'Try again', icon: 'retry', busy: false },
+      version,
+    };
+  }
+  return {
+    tone: 'quiet',
+    icon: 'upload',
+    text: `Launcher ${version} is available.`,
+    dim: 'The launcher restarts to install it.',
+    update: { label: 'Update launcher', icon: 'upload', busy: false },
+    version,
+  };
 }
 
 function stateView(input: ViewInput): View {
