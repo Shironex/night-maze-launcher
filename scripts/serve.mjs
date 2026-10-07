@@ -1,6 +1,6 @@
 // A static file server on loopback, for testing the launcher without GitHub.
 //
-//   node launcher/scripts/serve.mjs --root <folder> [--port 8123] [--throttle 200]
+//   node scripts/serve.mjs --root <folder> [--port 8123] [--throttle 200]
 //
 // It serves the files of `--root` on 127.0.0.1 only. `--throttle` limits zip
 // downloads to that many kilobytes per second, so the progress display can be

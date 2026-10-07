@@ -35,7 +35,7 @@ pub const RELEASE_KEYS: [&str; 2] = [
     "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ4MDIzNkI0RkEzNjc1MkIKUldRcmRUYjZ0RFlDU1BTRVlHaDErK0NIdVUrSk9VRzBiQ0ZRV2FLRDdHRWlIdlBYN3d5UXBEVlUK",
 ];
 
-/// The public half of `launcher/dev-keys/dev.key`, the key that signs local
+/// The public half of `dev-keys/dev.key`, the key that signs local
 /// test feeds. Its private half is committed with an empty password on
 /// purpose, so everybody can sign with it and it proves nothing.
 ///

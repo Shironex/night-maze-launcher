@@ -1,4 +1,4 @@
-// Run with: node --test launcher/scripts/lib
+// Run with: pnpm test:scripts
 //
 // The signing tests start the real Tauri CLI. Without it (no `pnpm install`)
 // they are skipped with a message, not failed.

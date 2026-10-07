@@ -5,7 +5,7 @@
 //   node scripts/build-launcher-notices.mjs [--out THIRD-PARTY-NOTICES.txt] \
 //     [--targets x86_64-pc-windows-msvc,aarch64-apple-darwin]
 //
-// Run from anywhere; paths are relative to launcher/. Rust: `cargo metadata`
+// Run from anywhere; paths are relative to the repository root. Rust: `cargo metadata`
 // is asked once per target, and only crates reached through normal
 // dependencies of the two workspace crates are listed. Build dependencies,
 // development dependencies and procedural macros run on the build machine and
@@ -260,8 +260,7 @@ function npmEntries() {
   while (pending.length > 0) {
     const { name, from } = pending.pop();
     const directory = findPackageDirectory(name, from);
-    if (!directory)
-      throw new Error(`${name} is not installed: run \`pnpm install\` in launcher/ first.`);
+    if (!directory) throw new Error(`${name} is not installed: run \`pnpm install\` first.`);
     if (entries.has(directory)) continue;
     const manifest = readJson(join(directory, 'package.json'));
     entries.set(directory, {

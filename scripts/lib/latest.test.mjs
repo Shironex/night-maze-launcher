@@ -1,4 +1,4 @@
-// Run with: node --test launcher/scripts/lib
+// Run with: pnpm test:scripts
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

@@ -75,8 +75,7 @@ export function signFile({ file, key, passwordEnv = PASSWORD_VARIABLE }) {
   }
 
   const cli = findTauriCli();
-  if (!cli)
-    throw new Error('the Tauri CLI is not installed: run `pnpm install` in launcher/ first.');
+  if (!cli) throw new Error('the Tauri CLI is not installed: run `pnpm install` first.');
   const env = { ...process.env };
   for (const name of KEY_VARIABLES) delete env[name];
   env[PASSWORD_VARIABLE] = password;

@@ -1,6 +1,6 @@
 // Writes manifest.json and news.json for one release.
 //
-//   node launcher/scripts/build-feed.mjs --dir <folder with the zips> --version 0.9.0 \
+//   node scripts/build-feed.mjs --dir <folder with the zips> --version 0.9.0 \
 //     --base-url https://github.com/Shironex/night-maze/releases/download/v0.9.0/ \
 //     [--changelog CHANGELOG.md] [--extra news-extra.json] [--title "tag message"] \
 //     [--launcher-min 0.1.0] [--out <folder>] [--sign-key <key>] [--no-sign]
