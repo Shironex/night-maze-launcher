@@ -127,8 +127,8 @@ unless `TAURI_SIGNING_PRIVATE_KEY` names a key and `TAURI_SIGNING_PRIVATE_KEY_PA
 its password. Releases set both, see [Releasing](#releasing). For a trial build, the
 development key works (`TAURI_SIGNING_PRIVATE_KEY` set to the path of `dev-keys/dev.key`, the
 password empty); the CLI then warns that the key does not match the public key in the config.
-That is expected for a trial, and such an installer must never be published. A trial build
-with the development key has not been run.
+That is expected for a trial, and such an installer must never be published. One trial build
+with the development key was run on Windows on 2026-10-07 (NSIS only, about two minutes).
 
 `src/bindings.ts` is generated from the Rust commands. After changing a command, a type it
 returns or an event, regenerate it with `UPDATE_BINDINGS=1 cargo test -p night-maze-launcher`
@@ -284,8 +284,8 @@ Two things are released, from two repositories:
 Launcher installers must not be released from the game repository: its "latest" release has to
 stay the newest game release, or the manifest address stops resolving.
 
-The four private keys live outside every repository, in `%USERPROFILE%\.night-maze-keys`
-(macOS: `~/.night-maze-keys`), with backups. They are never committed, and the file names below
+The private keys live outside every repository, in `%USERPROFILE%\.night-maze-keys`
+(macOS: `~/.night-maze-keys`) and in the backups. They are never committed, and the file names below
 are all this document says about them. See [Keys](#keys). The password is typed into a hidden
 prompt, put into an environment variable for the commands that need it and removed afterwards.
 It is never an argument, so it does not reach the shell history.
@@ -484,8 +484,10 @@ password with `read -rs` and `export`, as above.
 ## Keys
 
 Four minisign keys, all made with `pnpm tauri signer generate`, each with a password. The
-private halves are in `%USERPROFILE%\.night-maze-keys` on the owner's machine, with two backups
-in two different places made on the day the keys were made. A lost password is a lost key.
+private halves of the two A keys are in `%USERPROFILE%\.night-maze-keys` on the owner's machine.
+The two B keys are spares and were removed from the machine after the backups were made: they
+exist in the backups only. All four have two backups in two different places, made on the day
+the keys were made, and each backup was proven by signing a test file from it. A lost password is a lost key.
 
 | Key          | Public half is in                                       | What it signs                                         |
 | ------------ | ------------------------------------------------------- | ----------------------------------------------------- |
