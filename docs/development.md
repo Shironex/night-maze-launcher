@@ -485,11 +485,10 @@ release, and everything in [Not done yet](#not-done-yet).
   read, and the removal of a draft that a failed run left behind.
 - **CI is green on `main`**, on the two pushes of 2026-10-07. Its runs for the two pull
   requests Dependabot opened that day failed.
-- **An installer signed on a runner has never been installed.** 0.1.2 is meant to be the first
-  release built entirely on runners, and the update of an installed 0.1.1 to it is the proof.
-  The signature of 0.1.2 is made by `tauri signer sign`, not by `tauri build` as for 0.1.0 and
-  0.1.1. The two write the same format and `verify_file` checks it, but the updater in an
-  installed launcher has only ever accepted the second kind.
+- **An installer signed on a runner has been installed once.** On 2026-10-07 I updated an
+  installed 0.1.1 to 0.1.2 through Settings, About, on one Windows 11 PC. The signature of 0.1.2
+  was made by `tauri signer sign` on a runner, not by `tauri build`, and the installed launcher
+  accepted it. A clean second machine has not been tried.
 - **The real update path was run once and only once**, on one PC (see
   [What has been run by hand](#what-has-been-run-by-hand)). The update on a clean second
   machine has not been tried.
