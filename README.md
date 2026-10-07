@@ -1,5 +1,8 @@
 # Night Maze launcher
 
+> [!WARNING]
+> Night Maze and its launcher are a university project that I keep working on to learn OpenGL, Tauri and Rust. It changes a lot, and things will break here and there. Expect rough edges and breaking changes between versions.
+
 A small desktop program that installs the newest build of Night Maze, keeps it up to date and
 starts it. A friend downloads the launcher once and from then on always plays the latest
 version.
