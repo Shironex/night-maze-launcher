@@ -30,8 +30,8 @@ An installed launcher looks for its own updates at the latest release of this re
 
 ## Where the source is
 
-For now the launcher's source lives in the [`launcher/`](https://github.com/Shironex/night-maze/tree/main/launcher) folder of the game repository. I plan to move it here.
+Here. The launcher's source moved to this repository from the `launcher/` folder of the game repository, with its history. How to build it, test it and release it is in [docs/development.md](docs/development.md), and the release files that the launcher and the game repository agree on are in [docs/contract.md](docs/contract.md).
 
 ## Licence
 
-Until the source moves, see the [LICENSE](https://github.com/Shironex/night-maze/blob/main/LICENSE) in the game repository.
+MIT, see [LICENSE](LICENSE). The recorded game footage and the icons are not covered by it; the file says which.
