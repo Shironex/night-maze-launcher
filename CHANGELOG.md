@@ -12,7 +12,7 @@ The background shows the new gate.
 
 The background follows the game into its darker night.
 
-- The loop behind the window is recorded again from game 0.13.0: a darker maze, glowing crystals, and a loop that now closes exactly where it began.
+- The loop behind the window is recorded again from game 0.11.0: a darker maze, glowing crystals, and a loop that now closes exactly where it began.
 
 This is the first update the launcher shows by itself: a small box at the top right with a button that installs it.
 
