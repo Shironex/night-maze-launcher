@@ -2,6 +2,12 @@
 
 What changed in each release of the launcher, newest first. The release workflow copies the section of the released version into the notes of the GitHub release and into `latest.json`, where the launcher shows it as plain text before it updates itself. A version without a section here is not released.
 
+## 0.1.5 (2026-10-08)
+
+The background shows the new gate.
+
+- The loop behind the window is recorded again from game 0.11.0: the gatehouse that marks the exit now stands in the maze with its lit lanterns.
+
 ## 0.1.4 (2026-10-08)
 
 The background follows the game into its darker night.
