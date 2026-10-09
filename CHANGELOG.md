@@ -2,6 +2,16 @@
 
 What changed in each release of the launcher, newest first. The release workflow copies the section of the released version into the notes of the GitHub release and into `latest.json`, where the launcher shows it as plain text before it updates itself. A version without a section here is not released.
 
+## 0.1.6 (2026-10-09)
+
+A new window: the lamplighter's ledger.
+
+- The window has a new layout. The maze runs clear across the top, and an open ledger lies along the bottom.
+- The left page says what is installed and holds the action as one line: Launch, Update or Install. While the game downloads and installs, the line fills in from the left.
+- The right page lists every release as a dated line, newest first. Click a line to read its notes. This list replaces the three tabs.
+- A launcher update now shows as a slip of paper above the ledger, and its install action is a line on the left page.
+- Settings and the release notes look as before.
+
 ## 0.1.5 (2026-10-08)
 
 The background shows the new gate.
