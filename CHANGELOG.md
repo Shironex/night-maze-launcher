@@ -2,6 +2,12 @@
 
 What changed in each release of the launcher, newest first. The release workflow copies the section of the released version into the notes of the GitHub release and into `latest.json`, where the launcher shows it as plain text before it updates itself. A version without a section here is not released.
 
+## 0.1.7 (2026-10-09)
+
+The background follows game 0.14.0.
+
+- The loop behind the window is recorded again from game 0.14.0: crowned walls, moon splinters, the bell in the gatehouse, and no more dark patches on the mossy walls.
+
 ## 0.1.6 (2026-10-09)
 
 A new window: the lamplighter's ledger.

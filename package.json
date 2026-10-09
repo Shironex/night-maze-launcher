@@ -1,6 +1,6 @@
 {
   "name": "night-maze-launcher",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Launcher for Night Maze: installs the newest build, keeps it up to date and starts it",
   "private": true,
   "type": "module",
