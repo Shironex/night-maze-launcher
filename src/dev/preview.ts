@@ -183,10 +183,82 @@ const PREVIEWS: Record<string, Preview> = {
     snapshot: BASE,
     launcher: { ...NEWER_LAUNCHER, error: 'Could not reach the launcher update server' },
   },
+  // The states below are not in the published feed or need a broken computer.
+  // Their texts are invented, to see where each one lands on the pages.
+  checking: { ...QUIET, checking: true, snapshot: { ...BASE, remote: { kind: 'unknown' } } },
+  fatal: {
+    ...QUIET,
+    fatal: 'Could not read state.json: the file is not valid JSON',
+    snapshot: BASE,
+  },
+  // News and notices from the author, and two notices of this computer: the
+  // newest is the notice line, the older one a note in the margin.
+  news: {
+    ...QUIET,
+    snapshot: {
+      ...BASE,
+      current: BEFORE_NEWEST,
+      previous: null,
+      feed: {
+        ...FEED,
+        news: [
+          {
+            date: '2026-10-09',
+            title: 'A playtest evening on Friday',
+            body: 'I will be online from eight in the evening. Tell me where you got lost, and which seed it was.',
+          },
+          {
+            date: '2026-10-02',
+            title: 'The launcher has its own repository now',
+            body: 'Nothing changes for you: it keeps updating itself.',
+          },
+        ],
+        notices: [
+          {
+            id: 'pulled-0-10-0',
+            level: 'warning',
+            title: 'Version 0.10.0 was pulled.',
+            body: 'It did not start on some graphics cards. A fixed version follows.',
+          },
+        ],
+      },
+      notices: [
+        { id: 'local-1', kind: 'start_failed', failed: '0.8.0', detail: null },
+        {
+          id: 'local-2',
+          kind: 'rolled_back',
+          failed: NEWEST,
+          restored: BEFORE_NEWEST,
+          detail: '[error] Fatal: Failed to create the window (OpenGL 4.1 is required)',
+        },
+      ],
+    },
+  },
+  // As much text as the left page ever has to hold: a failed game update with
+  // a long reason, and a failed launcher update on the slip.
+  'long-texts': {
+    ...QUIET,
+    error:
+      'Could not unpack NightMaze-0.10.0-windows-x64.zip into C:\\Users\\friend\\AppData\\Local\\NightMaze\\staging: there is not enough space on the disk',
+    snapshot: BEHIND,
+    launcher: {
+      ...NEWER_LAUNCHER,
+      error:
+        'Could not download the launcher update: the connection to github.com was closed before the file was complete',
+    },
+  },
 };
+
+/** The names of all previews, for the test that renders each of them. */
+export const PREVIEW_NAMES = Object.keys(PREVIEWS);
+
+/** One preview by its name. */
+export function previewNamed(name: string): Preview | null {
+  return PREVIEWS[name] ?? null;
+}
 
 /** The preview named in the address of the page, if any. */
 export function previewFromLocation(): Preview | null {
   const name = new URLSearchParams(window.location.search).get('preview');
-  return name ? (PREVIEWS[name] ?? null) : null;
+  return name ? previewNamed(name) : null;
 }
