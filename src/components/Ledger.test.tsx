@@ -100,6 +100,44 @@ describe('the ledger in every preview state', () => {
   });
 });
 
+describe('the ledger before the launcher has read its state', () => {
+  const QUIET = { snapshot: null, progress: null, checking: false, error: null };
+
+  function without(fatal: string | null) {
+    const input = { ...QUIET, fatal };
+    return renderToStaticMarkup(
+      <Ledger
+        view={deriveView(input)}
+        snapshot={null}
+        sentence={statusSentence(input)}
+        today={TODAY}
+        onAction={nothing}
+        onOpenRelease={nothing}
+        onOpenSettings={nothing}
+        onOpenFolder={nothing}
+      />
+    );
+  }
+
+  it('says that it is starting, and offers nothing that needs the state', () => {
+    const html = without(null);
+    expect(text(html)).toContain('The launcher is starting.');
+    expect(action(html)).toMatchObject({ word: 'Launch', end: 'not ready', disabled: true });
+    expect(text(html)).toContain('starting');
+    expect(html).not.toContain('Settings');
+    expect(html).not.toContain('Install folder');
+    expect(text(html)).toContain('Release notes appear here after the first update check.');
+    expect(text(html)).toContain('Windows');
+  });
+
+  it('says why the launcher could not start', () => {
+    const html = without('The state file could not be read');
+    expect(html).toContain('<div class="notice warn" role="alert">');
+    expect(text(html)).toContain('The launcher could not start. The state file could not be read');
+    expect(text(html)).toContain('launcher problem');
+  });
+});
+
 describe('the action line', () => {
   it.each([
     ['ready', 'Launch', 'v0.10.0', false],
@@ -131,6 +169,7 @@ describe('the action line', () => {
 
   it('is amber only when it can be pressed or is being inked in', () => {
     expect(page('ready').left).toContain('class="a-in fill" aria-hidden="true"');
+    expect(page('downloading').left).toMatch(/class="a-in fill" style="[^"]*" aria-hidden="true"/);
     expect(page('first-run-offline').left).not.toContain('a-in fill');
     expect(page('running').left).not.toContain('a-in fill');
   });

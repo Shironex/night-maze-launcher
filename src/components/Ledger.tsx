@@ -87,14 +87,17 @@ export function Ledger({
               </p>
             ))}
             <div className="pf">
+              {/* Both need the state of the launcher, so neither is offered without it. */}
               <span>
-                <button type="button" className="lnk" onClick={onOpenSettings}>
-                  Settings
-                </button>
                 {snapshot && (
-                  <button type="button" className="lnk" onClick={() => onOpenFolder('install')}>
-                    Install folder
-                  </button>
+                  <>
+                    <button type="button" className="lnk" onClick={onOpenSettings}>
+                      Settings
+                    </button>
+                    <button type="button" className="lnk" onClick={() => onOpenFolder('install')}>
+                      Install folder
+                    </button>
+                  </>
                 )}
               </span>
               <span className="mono">
