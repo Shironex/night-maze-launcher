@@ -39,12 +39,12 @@ hand**, because the workflow looked for the new draft before GitHub listed it. S
   (through `tauri-plugin-updater`, `src-tauri/src/updater.rs`), on start, every four hours
   while it stays open, and from the settings. The two checks it makes by itself follow the
   "Check for updates on start" setting, say nothing when they fail, and the later one is
-  skipped while the game runs or anything is being downloaded. A newer launcher is offered in a
-  toast at the top right of the main window, with a button that installs it, and under
-  Settings, About, with its notes. A closed toast stays away until the launcher is started
-  again or a still newer launcher is found. Where this launcher is too old for the newest game
-  or could not start, the main button says "Update launcher" and there is no toast. The
-  installer is downloaded, its signature is checked against the updater key, and it replaces
+  skipped while the game runs or anything is being downloaded. A newer launcher is offered on a
+  slip of paper that sticks out of the ledger in the main window, with a line on the left page
+  that installs it, and under Settings, About, with its notes. A closed slip stays away until
+  the launcher is started again or a still newer launcher is found. Where this launcher is too
+  old for the newest game or could not start, the action line says "Update launcher" and there
+  is no slip. The installer is downloaded, its signature is checked against the updater key, and it replaces
   the launcher. A development build never does this.
 
 All network access is in Rust (`crates/core/src/net.rs`). The page makes no request: its
@@ -117,10 +117,29 @@ Set `WEBVIEW2_USER_DATA_FOLDER` to move that too.
 In a development build, `http://localhost:15190/?preview=<name>` shows a fixed state without a
 server: `ready`, `update`, `downloading`, `installing`, `running`, `offline`, `first-run`,
 `first-run-offline`, `rolled-back`, `update-failed`, `launcher-too-old`, `launcher-update`,
-`launcher-downloading`, `launcher-newer` (the toast was closed, so the update is in the
-settings only), `launcher-toast`, `launcher-toast-downloading`, `launcher-toast-failed`. The
-list is in `src/dev/preview.ts`, which is not part of a release build. The release notes in these states are the published ones of the game, kept
-as static data in `src/dev/preview-feed.ts`.
+`launcher-downloading`, `launcher-newer` (the slip was closed, so the update is in the
+settings only), `launcher-toast`, `launcher-toast-downloading`, `launcher-toast-failed`,
+`checking`, `fatal` (the launcher could not read its state), `news` (posts and notices from the
+author, and two notices of this computer) and `long-texts` (as much text as the left page ever
+has to hold). The list is in `src/dev/preview.ts`, which is not part of a release build. The
+release notes in these states are the published ones of the game, kept as static data in
+`src/dev/preview-feed.ts`. The published feed has no news and no notices, so the texts of the
+last four states are invented.
+
+### The window
+
+The window is a caption on the recorded loop and an open ledger along the bottom
+(`src/components/Ledger.tsx`). The left page holds a status sentence or the notice in its
+place, the action line, the lines under it (the second action, what can be done about a notice,
+the state in a few words, the install steps, the launcher update), notes in the margin and a
+footer. The right page holds the releases, one dated line each, under the news when the feed
+has posts. `src/state/view.ts` decides the texts and actions, `src/state/ledger.ts` adds the
+status sentence, the margin notes and which release is still waiting.
+
+Every length of the ledger is a multiple of `--u` in `src/styles.css`, one pixel at the default
+window size, and everything on a page sits on ruled lines of the height `--line`. The book is
+eight lines tall and grows by whole lines when a state needs more, so a long message is never
+cut. The two dialogs still count in em.
 
 ## Checks
 
@@ -132,7 +151,7 @@ pnpm build                 # typecheck and build the page into dist/
 pnpm lint
 pnpm format:check
 pnpm typecheck
-pnpm test                  # view logic and text helpers
+pnpm test                  # view logic, text helpers, the window in every preview state
 pnpm test:scripts          # the Node tests of scripts/ (node --test, Node 22)
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
