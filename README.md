@@ -39,21 +39,23 @@ What I have really tried: I have run the launcher by hand on one Windows 11 PC, 
 
 ## Screenshots
 
+The window is the recorded loop of the game with an open ledger along the bottom. The left page says what is installed and holds the one main action, the right page lists the releases.
+
 <table>
   <tr>
     <td width="50%"><img src="assets/showcase/first-start.webp" alt="Night Maze Launcher: First start" /></td>
     <td width="50%"><img src="assets/showcase/ready.webp" alt="Night Maze Launcher: Ready" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Nothing is installed yet: one button downloads the newest game.</sub></td>
-    <td align="center"><sub>The game is installed and up to date, with its release notes beside it.</sub></td>
+    <td align="center"><sub>Nothing is installed yet: one line downloads the newest game.</sub></td>
+    <td align="center"><sub>The game is installed and up to date, with every release on the page beside it.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="assets/showcase/update.webp" alt="Night Maze Launcher: Update" /></td>
     <td width="50%"><img src="assets/showcase/installing.webp" alt="Night Maze Launcher: Installing" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>A newer game version is found: update, or start the one you have.</sub></td>
+    <td align="center"><sub>A newer game version waits on the right page: update, or start the one you have.</sub></td>
     <td align="center"><sub>The download is checked and unpacked in steps.</sub></td>
   </tr>
   <tr>
@@ -81,11 +83,11 @@ The release notes in these pictures are the real ones of the game. The install f
 | Feature              | What it does                                                                                                                                                                                                                                                                                                                                                                          |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Install              | Downloads the zip of the newest game release, checks its size and SHA-256 against the signed release information, and unpacks it into its own version folder. A version folder appears complete or not at all.                                                                                                                                                                        |
-| Release notes        | Shows the notes of every game release: a highlight card, a list, and a dialog with the full text. The last notes read are kept on disk, so they are there without a network too.                                                                                                                                                                                                      |
+| Release notes        | Shows the notes of every game release: one dated line each on the right page, newest on top, and a dialog with the full text. News and notices from the feed are shown too when there are any. The last notes read are kept on disk, so they are there without a network too.                                                                                                         |
 | Game updates         | Looks for a newer game version on start (this can be switched off) and offers it. You can update, or start the version you have.                                                                                                                                                                                                                                                      |
 | Going back a version | The previous version stays on disk. If a new version that has never run well here exits with an error within 15 seconds of its start, and the previous version has run well before, the launcher removes the new one, starts the previous one and says so. That new version is not installed again on that computer. A build that starts but only shows a black screen is not caught. |
 | Offline              | Without a network the installed game still starts. Only the very first download needs a connection.                                                                                                                                                                                                                                                                                   |
-| Launcher self update | The launcher looks for a newer launcher at start and every four hours while it stays open. When it finds one, a small box at the top right names the version and has a button that installs it. The same update is also under Settings, About, with its notes.                                                                                                                        |
+| Launcher self update | The launcher looks for a newer launcher at start and every four hours while it stays open. When it finds one, a slip of paper that sticks out of the ledger names the version, and a line on the left page installs it. The same update is also under Settings, About, with its notes.                                                                                                |
 | Per user install     | The installer needs no administrator rights. The game, its logs and the launcher's state live in one folder of the user, `%LOCALAPPDATA%\NightMaze`.                                                                                                                                                                                                                                  |
 | Settings             | Open the install folder, switch the update check on start on or off, open the folder with the game log.                                                                                                                                                                                                                                                                               |
 
@@ -123,16 +125,16 @@ The source moved here from the `launcher/` folder of the game repository, with i
 
 You need Node 22, pnpm 10 (`corepack enable` gives the version `package.json` names), Rust (rustup installs the version `rust-toolchain.toml` pins) and, on Windows, the WebView2 runtime, which is part of Windows 11.
 
-| Command                  | What it does                                                     |
-| ------------------------ | ---------------------------------------------------------------- |
-| `pnpm install`           | Installs the dependencies                                        |
-| `pnpm tauri dev`         | Starts the launcher in development                               |
-| `pnpm build`             | Typechecks the window and builds it into `dist/`                 |
-| `pnpm lint`              | ESLint                                                           |
-| `pnpm format:check`      | Prettier                                                         |
-| `pnpm test`              | The tests of the window's view logic and text helpers            |
-| `pnpm test:scripts`      | The tests of the Node scripts                                    |
-| `cargo test --workspace` | The Rust tests. Run `pnpm build` first: the shell embeds `dist/` |
+| Command                  | What it does                                                           |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `pnpm install`           | Installs the dependencies                                              |
+| `pnpm tauri dev`         | Starts the launcher in development                                     |
+| `pnpm build`             | Typechecks the window and builds it into `dist/`                       |
+| `pnpm lint`              | ESLint                                                                 |
+| `pnpm format:check`      | Prettier                                                               |
+| `pnpm test`              | The tests of the window: view logic, text helpers, every preview state |
+| `pnpm test:scripts`      | The tests of the Node scripts                                          |
+| `cargo test --workspace` | The Rust tests. Run `pnpm build` first: the shell embeds `dist/`       |
 
 How to run it against a local test server, the Rust checks, the folder layout on disk and what has never been tried are in [docs/development.md](docs/development.md). The release files that the launcher and the game repository agree on are in [docs/contract.md](docs/contract.md).
 
@@ -144,7 +146,7 @@ The pictures in this README are made with [@noctcore/showcase-kit](https://githu
 pnpm showcase
 ```
 
-It starts `pnpm dev` (the window only, no Rust build) and opens the window's built-in preview states in a headless Chromium at the real window size, 1280 x 800. Nothing is fetched: the release notes are a static copy of the game's published ones in `src/dev/preview-feed.ts`, which is not part of a release build. To get the same picture on every run it keeps the background video on its still picture, switches transitions off, waits for every font, parks the mouse, pins the user agent and refuses every request that does not go to the dev server.
+It starts `pnpm dev` (the window only, no Rust build) and opens the window's built-in preview states in a headless Chromium at the real window size, 1280 x 800. Nothing is fetched: the release notes are a static copy of the game's published ones in `src/dev/preview-feed.ts`, which is not part of a release build. To get the same picture on every run it keeps the background video on its still picture, fixes the date in the header, switches transitions off, waits for every font, parks the mouse, pins the user agent and refuses every request that does not go to the dev server.
 
 Chromium has to be downloaded once: `pnpm exec playwright install chromium`. I have only run this on Windows 11.
 

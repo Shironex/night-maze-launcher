@@ -19,7 +19,8 @@
 //   mouse (parked in the corner), requests (anything outside the dev server is aborted).
 // - The user agent, so the window buttons at the top right look the same on every OS:
 //   TitleBar.tsx hides them when the user agent says macOS.
-// - There is no clock to freeze: every date on screen is a fixed string in the preview data.
+// - The clock: the header of the ledger shows today's date, so the day is fixed (TODAY below).
+//   Every other date on screen is a fixed string in the preview data.
 //
 // Refresh the data: when the game publishes a release, update src/dev/preview-feed.ts from the
 // news.json of that release (the header of that file says how).
@@ -34,13 +35,16 @@ const ORIGIN = `http://localhost:${PORT}`;
 const WINDOWS_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
+// The day in the header of the ledger: two days after the newest release in the preview data.
+const TODAY = new Date(2026, 9, 9, 12);
+
 // Crystal teal (--color-crystal-deep) into the deep night navy (--color-deep) of src/styles.css.
 const BACKGROUND = { type: 'gradient', from: '#12444c', to: '#090d1a', angle: 135 };
 
 /**
  * Open a preview state and wait until it is really on screen, then run `open` (a click that opens
- * a dialog) and park the mouse where it leaves no hover state. `pill` is the text the version
- * pill shows once the state has been applied: before that the window says "starting".
+ * a dialog) and park the mouse where it leaves no hover state. `pill` is the text the state line
+ * under the action shows once the state has been applied: before that the window says "starting".
  */
 function view(state, pill, open) {
   return async page => {
@@ -76,6 +80,7 @@ export default defineConfig({
   langs: ['en'],
   css: ':focus-visible { outline: none !important; }',
   setup: async ({ context }) => {
+    await context.clock.setFixedTime(TODAY);
     await context.addInitScript(userAgent => {
       Object.defineProperty(navigator, 'userAgent', { get: () => userAgent });
     }, WINDOWS_USER_AGENT);
@@ -88,23 +93,23 @@ export default defineConfig({
     {
       id: 'first-start',
       title: 'First start',
-      caption: 'Nothing is installed yet: one button downloads the newest game.',
+      caption: 'Nothing is installed yet: one line downloads the newest game.',
       nav: view('first-run', 'not installed'),
-      waitFor: '.cta',
+      waitFor: '.act',
     },
     {
       id: 'ready',
       title: 'Ready',
-      caption: 'The game is installed and up to date, with its release notes beside it.',
+      caption: 'The game is installed and up to date, with every release on the page beside it.',
       nav: view('ready', 'up to date'),
-      waitFor: '.rel',
+      waitFor: 'button.row',
     },
     {
       id: 'update',
       title: 'Update',
-      caption: 'A newer game version is found: update, or start the one you have.',
+      caption: 'A newer game version waits on the right page: update, or start the one you have.',
       nav: view('update', 'update available'),
-      waitFor: '.sbtn',
+      waitFor: '.row.wait',
     },
     {
       id: 'installing',
@@ -118,7 +123,7 @@ export default defineConfig({
       title: 'Release notes',
       caption: 'Every release of the game, with what changed in it.',
       nav: view('ready', 'up to date', page =>
-        page.getByRole('button', { name: 'Release notes', exact: true }).click()
+        page.getByRole('button', { name: 'all 10 releases', exact: true }).click()
       ),
       waitFor: '[role="dialog"][aria-label="Changelog"] .cl-g',
     },
