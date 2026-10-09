@@ -1,7 +1,20 @@
 // Small text helpers. Hand written: the launcher shows three kinds of numbers
 // and two kinds of dates, which does not justify a formatting library.
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 /** A byte count as megabytes with one decimal: `18.0 MB`. */
 export function megabytes(bytes: number): string {
@@ -39,5 +52,10 @@ export function shortDate(date: string): string {
 export function longDate(date: string): string {
   const parts = dateParts(date);
   if (!parts) return date;
-  return `${MONTHS[parts.month - 1]} ${parts.day}, ${parts.year}`;
+  return `${MONTHS[parts.month - 1]?.slice(0, 3)} ${parts.day}, ${parts.year}`;
+}
+
+/** A day as `9 October 2026`, the form of the ledger's header. */
+export function ledgerDate(date: Date): string {
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { longDate, megabytes, megabytesOf, percent, shortDate } from './format';
+import { ledgerDate, longDate, megabytes, megabytesOf, percent, shortDate } from './format';
 
 const MEGABYTE = 1024 * 1024;
 
@@ -25,5 +25,10 @@ describe('format', () => {
     expect(shortDate('soon')).toBe('');
     expect(longDate('soon')).toBe('soon');
     expect(shortDate('2026-13-40')).toBe('');
+  });
+
+  it('writes the day of the ledger out in full', () => {
+    expect(ledgerDate(new Date(2026, 9, 9))).toBe('9 October 2026');
+    expect(ledgerDate(new Date(2027, 0, 31))).toBe('31 January 2027');
   });
 });
