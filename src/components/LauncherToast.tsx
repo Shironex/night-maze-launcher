@@ -7,13 +7,13 @@ interface LauncherToastProps {
 }
 
 /**
- * The toast at the top right: a newer launcher was found, with a button that
- * installs it the way the button in the settings does.
+ * The slip of paper that sticks out of the book: a newer launcher was found.
+ * The button that installs it is a line on the left page, see `LauncherLine`.
  *
  * It never takes the focus. Its text is a status, and a failed update an
  * alert. A screen reader is sure to read out the alert; whether it reads a
- * status that appears already filled depends on the reader. The close button,
- * or Escape while the focus is inside, hides it until the launcher is started
+ * status that appears already filled depends on the reader. "Not now", or
+ * Escape while the focus is inside, hides it until the launcher is started
  * again. While the download runs it cannot be closed, so a failure is always
  * seen.
  */
@@ -24,7 +24,7 @@ export function LauncherToast({ toast, onAction }: LauncherToastProps) {
 
   return (
     <div
-      className={failed ? 'toast notice warn' : 'toast notice'}
+      className={failed ? 'slip warn' : 'slip'}
       role="region"
       aria-label="Launcher update"
       onKeyDown={event => {
@@ -38,21 +38,34 @@ export function LauncherToast({ toast, onAction }: LauncherToastProps) {
         <span className="dim"> {toast.dim}</span>
       </p>
       {!busy && (
-        <button type="button" className="t-x" aria-label="Dismiss" onClick={dismiss}>
-          <Icon name="close" />
+        <button type="button" className="lnk" onClick={dismiss}>
+          Not now
         </button>
       )}
-      <div className="acts">
-        <button
-          type="button"
-          className="sbtn"
-          disabled={busy}
-          onClick={() => onAction({ type: 'update_launcher' })}
-        >
-          <Icon name={toast.update.icon} />
-          {toast.update.label}
-        </button>
-      </div>
+    </div>
+  );
+}
+
+interface LauncherLineProps extends LauncherToastProps {
+  /** The version of this launcher. */
+  current: string;
+}
+
+/** The line on the left page that installs the launcher the slip names. */
+export function LauncherLine({ toast, current, onAction }: LauncherLineProps) {
+  return (
+    <div className="ex">
+      <button
+        type="button"
+        className="lnk teal"
+        disabled={toast.update.busy}
+        onClick={() => onAction({ type: 'update_launcher' })}
+      >
+        {toast.update.label}
+      </button>
+      <span className="mono">
+        launcher {current} → {toast.version}
+      </span>
     </div>
   );
 }

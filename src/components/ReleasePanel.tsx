@@ -1,147 +1,94 @@
-import { useState } from 'react';
-import type { LocalNotice, NewsFeed, ReleaseNotes } from '../bindings';
+import type { NewsFeed } from '../bindings';
 import { shortDate } from '../lib/format';
-import { localNoticeText } from '../state/view';
-
-type TabId = 'updates' | 'news' | 'notices';
 
 interface ReleasePanelProps {
   feed: NewsFeed | null;
   /** The one line from the manifest, shown when there is no feed. */
   fallbackNotes: string | null;
-  localNotices: LocalNotice[];
+  /** The release that is found or being installed and cannot be started yet. */
+  waiting: string | null;
+  /** The last check failed, so the entries are the ones kept on disk. */
+  kept: boolean;
   onOpenRelease: (version: string | null) => void;
 }
 
 /**
- * The highlight card and the tabbed list under it: release notes, news and
- * notices. All text comes from the notes feed and is rendered as plain text.
+ * The right page: every release as one dated line, newest on top. A line opens
+ * the notes of its release. When the feed has news, the page begins with the
+ * posts and the releases follow under their own heading. All text comes from
+ * the notes feed and is rendered as plain text.
  */
 export function ReleasePanel({
   feed,
   fallbackNotes,
-  localNotices,
+  waiting,
+  kept,
   onOpenRelease,
 }: ReleasePanelProps) {
-  const [chosen, setChosen] = useState<TabId>('updates');
   const updates = feed?.updates ?? [];
   const news = feed?.news ?? [];
-  const remoteNotices = feed?.notices ?? [];
-  const noticeCount = remoteNotices.length + localNotices.length;
+  const count = updates.length;
 
-  const tabs: { id: TabId; label: string; count?: number }[] = [
-    { id: 'updates', label: 'Updates' },
-    // The News tab can stay empty for months, so it only exists with posts.
-    ...(news.length > 0 ? [{ id: 'news' as const, label: 'News' }] : []),
-    { id: 'notices', label: 'Notices', count: noticeCount > 0 ? noticeCount : undefined },
-  ];
-  const active = tabs.some(tab => tab.id === chosen) ? chosen : 'updates';
-  const highlight = updates.find(entry => entry.highlight) ?? updates[0];
-
-  return (
+  const changed = (
     <>
-      {highlight && <HighlightCard release={highlight} onOpen={onOpenRelease} />}
-      <div className="tabs">
-        <div className="tabs-row" role="tablist" aria-label="Release information">
-          {tabs.map(tab => (
-            <button
-              type="button"
-              role="tab"
-              key={tab.id}
-              id={`tab-${tab.id}`}
-              className="tab"
-              aria-selected={tab.id === active}
-              aria-controls="tab-panel"
-              onClick={() => setChosen(tab.id)}
-            >
-              {tab.label}
-              {tab.count !== undefined && <b>{tab.count}</b>}
-            </button>
-          ))}
-        </div>
-        <div className="tab-panel" id="tab-panel" role="tabpanel" aria-labelledby={`tab-${active}`}>
-          {active === 'updates' &&
-            (updates.length > 0 ? (
-              updates.map(entry => (
-                <button
-                  type="button"
-                  className="rel"
-                  key={entry.version}
-                  onClick={() => onOpenRelease(entry.version)}
-                >
-                  <span className="v">v{entry.version}</span>
-                  <span className="t">{entry.title || `Version ${entry.version}`}</span>
-                  <span className="d">{shortDate(entry.date ?? '')}</span>
-                </button>
-              ))
-            ) : (
-              <p className="empty">
-                {fallbackNotes ?? 'Release notes appear here after the first update check.'}
-              </p>
-            ))}
-          {active === 'news' &&
-            news.map((post, index) => (
-              <div className="post" key={`${post.title}-${index}`}>
-                <span className="k">{shortDate(post.date ?? '')}</span>
-                <b>{post.title}</b>
-                <span>{post.body}</span>
-              </div>
-            ))}
-          {active === 'notices' &&
-            (noticeCount > 0 ? (
-              <>
-                {localNotices.map(notice => (
-                  <div className="post" key={notice.id}>
-                    <span className="k">This computer</span>
-                    <b>{localNoticeText(notice)}</b>
-                    {notice.detail && <span>{notice.detail}</span>}
-                  </div>
-                ))}
-                {remoteNotices.map((notice, index) => (
-                  <div className="post" key={`${notice.id}-${index}`}>
-                    <span className="k">{notice.level === 'warning' ? 'Warning' : 'Notice'}</span>
-                    <b>{notice.title}</b>
-                    <span>{notice.body}</span>
-                  </div>
-                ))}
-              </>
-            ) : (
-              <p className="empty">No notices.</p>
-            ))}
-        </div>
-      </div>
+      <span id="what-changed">What changed</span>
+      <span>
+        {kept && count > 0 && 'as of the last check · '}
+        <button type="button" className="lnk" onClick={() => onOpenRelease(null)}>
+          {count === 0 ? 'release notes' : count === 1 ? '1 release' : `all ${count} releases`}
+        </button>
+      </span>
     </>
   );
-}
 
-interface HighlightCardProps {
-  release: ReleaseNotes;
-  onOpen: (version: string | null) => void;
-}
-
-/** The card above the tabs. It opens the notes of the highlighted release. */
-function HighlightCard({ release, onOpen }: HighlightCardProps) {
   return (
-    <button type="button" className="hl" onClick={() => onOpen(release.version)}>
-      <svg viewBox="0 0 276 80" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <rect width="276" height="80" fill="url(#g-sky)" />
-        <path d="M150 80L205 44h71v36z" fill="url(#g-floor)" />
-        <path d="M276 0L205 20v26l71 34z" fill="url(#g-wall-r)" />
-        <ellipse cx="215" cy="62" rx="60" ry="20" fill="url(#g-warm)" />
-        <circle cx="222" cy="40" r="34" fill="url(#g-cry)" />
-        <path
-          d="M222 20l10 16-10 24-10-24z"
-          fill="var(--l-crystal)"
-          stroke="var(--l-moon)"
-          strokeWidth="1"
-        />
-        <rect width="276" height="80" fill="url(#g-left)" />
-      </svg>
-      <span className="hl-text">
-        <span className="k">v{release.version} · Highlight</span>
-        <span className="h">{release.title || `Version ${release.version}`}</span>
-        <span className="d">{release.summary}</span>
-      </span>
-    </button>
+    <section className="pg r" aria-labelledby={news.length > 0 ? 'news' : 'what-changed'}>
+      <div className="ph">
+        {news.length > 0 ? (
+          <>
+            <span id="news">News</span>
+            <span>{news.length === 1 ? '1 post' : `${news.length} posts`}</span>
+          </>
+        ) : (
+          changed
+        )}
+      </div>
+      <div className="rows">
+        {news.map((post, index) => (
+          <article className="post" key={`${post.title}-${index}`}>
+            <h2 className="row new">
+              <span className="d">{shortDate(post.date ?? '')}</span>
+              <span className="t">{post.title}</span>
+            </h2>
+            <p>{post.body}</p>
+          </article>
+        ))}
+        {news.length > 0 && <div className="ph">{changed}</div>}
+        {updates.map((entry, index) => {
+          const wait = entry.version === waiting;
+          return (
+            <button
+              type="button"
+              className={`row${index === 0 ? ' new' : ''}${wait ? ' wait' : ''}`}
+              key={entry.version}
+              onClick={() => onOpenRelease(entry.version)}
+            >
+              <span className="d">{shortDate(entry.date ?? '')}</span>
+              <span className="v">{entry.version}</span>
+              <span className="t" title={entry.title}>
+                {entry.title || `Version ${entry.version}`}
+                {entry.summary && <span className="dim"> {entry.summary}</span>}
+              </span>
+              {wait && <span className="w">waiting</span>}
+            </button>
+          );
+        })}
+        {count === 0 && (
+          <p className="empty">
+            {fallbackNotes ?? 'Release notes appear here after the first update check.'}
+          </p>
+        )}
+      </div>
+    </section>
   );
 }

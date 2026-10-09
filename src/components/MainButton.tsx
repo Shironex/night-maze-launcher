@@ -1,5 +1,4 @@
 import type { Action, CtaView } from '../state/view';
-import { Icon } from './Icon';
 
 interface MainButtonProps {
   cta: CtaView;
@@ -7,38 +6,52 @@ interface MainButtonProps {
 }
 
 /**
- * The large button at the bottom right: Launch, Update, Install, or the
- * progress of a running install. Percent and size are text; the thin line
- * along the bottom edge repeats them.
+ * The action line of the left page: Launch, Update, Install, or the progress
+ * of a running install. A mark, the word, a dotted leader and the version, the
+ * way a ledger line ends in its amount.
+ *
+ * The line is drawn twice. The outline is always there and carries the text
+ * for a screen reader. The amber layer lies over it: complete when the line
+ * can be pressed, and cut off at the percentage while it works, so the line
+ * inks in from the left. Percent and size are text; the ink repeats them.
  */
 export function MainButton({ cta, onAction }: MainButtonProps) {
   const action = cta.action;
-  const style = cta.style === 'primary' ? 'cta' : `cta ${cta.style}`;
+  const done = cta.percent ?? 0;
+  const line = (
+    <>
+      <i className="gem" />
+      <b>{cta.title}</b>
+      <span className="dots" />
+      <span className="v">{cta.sub}</span>
+    </>
+  );
 
   return (
     <button
       type="button"
-      className={style}
+      className={`act ${cta.style}`}
       disabled={!action}
       onClick={action ? () => onAction(action) : undefined}
     >
-      <span className="sq">
-        <Icon name={cta.icon} />
-      </span>
-      <span className="l">
-        <b>{cta.title}</b>
-        <span>{cta.sub}</span>
-      </span>
+      <span className="a-in base">{line}</span>
+      {cta.style === 'primary' && (
+        <span className="a-in fill" aria-hidden="true">
+          {line}
+        </span>
+      )}
       {cta.style === 'busy' && (
         <span
-          className="bar"
-          style={{ width: `${cta.percent ?? 0}%` }}
+          className="a-in fill"
+          style={{ clipPath: `inset(0 ${100 - done}% 0 0)` }}
           role="progressbar"
           aria-label="Install progress"
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={cta.percent ?? 0}
-        />
+          aria-valuenow={done}
+        >
+          {line}
+        </span>
       )}
     </button>
   );

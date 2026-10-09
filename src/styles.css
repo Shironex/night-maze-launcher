@@ -17,6 +17,10 @@
 @import '@fontsource/atkinson-hyperlegible-mono/latin-ext-400.css';
 @import '@fontsource/atkinson-hyperlegible-mono/latin-600.css';
 @import '@fontsource/atkinson-hyperlegible-mono/latin-ext-600.css';
+@import '@fontsource/cormorant-garamond/latin-500.css';
+@import '@fontsource/cormorant-garamond/latin-ext-500.css';
+@import '@fontsource/cormorant-garamond/latin-500-italic.css';
+@import '@fontsource/cormorant-garamond/latin-ext-500-italic.css';
 @import '@fontsource/cormorant-garamond/latin-700.css';
 @import '@fontsource/cormorant-garamond/latin-ext-700.css';
 
@@ -55,12 +59,34 @@
   --l-crystal: var(--color-crystal);
   --l-crystal-deep: var(--color-crystal-deep);
   --l-sky-top: #070b1c;
-  --l-sky-low: #17234c;
-  --l-stone: #121a32;
-  --l-stone-lit: #2c395d;
-  --l-floor: #0c1326;
-  --l-floor-lit: #27324f;
+  /* The ledger: its paper, the rules on it, its edges, the slip in it, the
+     small grey of dates, and the shade under everything that lies on the video. */
+  --l-page: #0e1629;
+  --l-rule: rgb(230 235 245 / 0.075);
+  --l-page-edge: #3a4870;
+  --l-spine: #050812;
+  --l-slip: #1b2744;
+  --l-faint: #7f8cab;
+  --l-shade: rgb(5 8 18 / 0.95);
+  /* One pixel of the design at the default window size, see `html` below. */
+  --u: calc(1rem / 14);
+  /* The height of a ruled line of the ledger. */
+  --line: calc(34 * var(--u));
   color-scheme: dark;
+}
+
+/* The whole window is laid out in one unit. One rem is a 91st of the window
+   width at the default size (14px at 1280), and it follows the window between
+   the minimum size and a large one, so the layout keeps its proportions. The
+   ledger counts in `--u`, a 14th of it, and the dialogs in em. */
+html {
+  font-size: clamp(12px, min(calc(100vw / 91.4), calc(100vh / 57.1)), 17px);
+}
+/* Whole pixels, so the rules of the ledger stay sharp at every window size. */
+@supports (width: round(1.5px, 1px)) {
+  :root {
+    --line: round(calc(34 * var(--u)), 1px);
+  }
 }
 
 html,
@@ -80,15 +106,12 @@ body {
   cursor: default;
 }
 
-/* The whole window is laid out in em. One em is a 91st of the window width at
-   the default size (14px at 1280), and it follows the window between the
-   minimum size and a large one, so the layout keeps its proportions. */
 .win {
   position: relative;
   overflow: hidden;
   width: 100%;
   height: 100%;
-  font-size: clamp(12px, min(calc(100vw / 91.4), calc(100vh / 57.1)), 17px);
+  font-size: 1rem;
   line-height: 1.35;
   background: var(--l-night);
 }
@@ -122,11 +145,6 @@ button:disabled {
 }
 
 /* ---- background scene ---------------------------------------------------- */
-.defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-}
 .scene {
   position: absolute;
   inset: 0;
@@ -139,66 +157,24 @@ button:disabled {
   display: block;
   object-fit: cover;
 }
-/* The scrim over the loop: night from the left, where the name and the cards
-   are, and from the bottom. */
+/* The loop is clear but for two scrims: a short one along the top, under the
+   caption and the window buttons, and night that rises to meet the book. */
 .scene::after {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to top, color-mix(in srgb, var(--l-night) 86%, transparent), transparent 32%),
     linear-gradient(
-      to right,
-      color-mix(in srgb, var(--l-night) 97%, transparent),
-      color-mix(in srgb, var(--l-night) 86%, transparent) 36%,
-      transparent 64%
+      180deg,
+      rgb(5 8 18 / 0.72) 0,
+      rgb(5 8 18 / 0.5) calc(48 * var(--u)),
+      rgb(5 8 18 / 0) calc(120 * var(--u))
+    ),
+    linear-gradient(
+      0deg,
+      rgb(5 8 18 / 0.9) calc(300 * var(--u)),
+      rgb(5 8 18 / 0) calc(440 * var(--u))
     );
-}
-.st-sky-a {
-  stop-color: var(--l-sky-top);
-}
-.st-sky-b {
-  stop-color: var(--l-sky-low);
-}
-.st-stone {
-  stop-color: var(--l-stone);
-}
-.st-stone-lit {
-  stop-color: var(--l-stone-lit);
-}
-.st-floor {
-  stop-color: var(--l-floor);
-}
-.st-floor-lit {
-  stop-color: var(--l-floor-lit);
-}
-.st-warm {
-  stop-color: var(--l-amber);
-  stop-opacity: 0.5;
-}
-.st-warm-0 {
-  stop-color: var(--l-amber);
-  stop-opacity: 0;
-}
-.st-cry {
-  stop-color: var(--l-crystal);
-  stop-opacity: 0.6;
-}
-.st-cry-0 {
-  stop-color: var(--l-crystal);
-  stop-opacity: 0;
-}
-.st-night {
-  stop-color: var(--l-night);
-  stop-opacity: 0.97;
-}
-.st-night-mid {
-  stop-color: var(--l-night);
-  stop-opacity: 0.86;
-}
-.st-night-0 {
-  stop-color: var(--l-night);
-  stop-opacity: 0;
 }
 
 /* ---- icons --------------------------------------------------------------- */
@@ -229,7 +205,7 @@ button:disabled {
   right: 0.9em;
   display: flex;
   gap: 0.3em;
-  color: var(--l-dim);
+  color: var(--l-moon);
 }
 .w-ctl button {
   width: 2.5em;
@@ -247,426 +223,463 @@ button:disabled {
   height: 1.25em;
 }
 
-/* ---- top left: who made it, the name, the version pill -------------------- */
-.w-id {
+/* ---- the caption on the video: the mark, the name, the subtitle ------------ */
+/* It lies in the drag strip of the title bar and lets the mouse through to it.
+   The shadow keeps it readable when a lit part of the maze glides under it. */
+.cap {
   position: absolute;
-  left: 2.8em;
-  top: 3.4em;
-  display: grid;
-  justify-items: start;
-}
-.w-pub {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
+  left: calc(30 * var(--u));
+  top: calc(22 * var(--u));
   display: flex;
-  gap: 0.8em;
   align-items: center;
+  gap: calc(12 * var(--u));
+  margin: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow:
+    0 0 calc(10 * var(--u)) var(--l-shade),
+    0 0 calc(3 * var(--u)) var(--l-shade);
 }
-.w-pub i {
-  width: 0.5em;
-  height: 0.5em;
-  border-radius: 50%;
+.cap b {
+  font: 700 calc(24 * var(--u)) / 1 var(--font-serif);
+  letter-spacing: 0.14em;
+}
+.cap span {
+  font: italic 500 calc(20 * var(--u)) / 1 var(--font-serif);
+  color: var(--l-amber);
+}
+.gem {
+  display: inline-block;
+  flex: none;
+  width: calc(12 * var(--u));
+  height: calc(19 * var(--u));
   background: var(--l-crystal);
-  display: block;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
-.w-pub span {
-  letter-spacing: 0.08em;
-  text-transform: none;
+.cap .gem {
+  filter: drop-shadow(0 0 calc(4 * var(--u)) var(--l-shade));
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.dim {
   color: var(--l-dim);
 }
-.w-word {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 4.8em;
-  line-height: 1;
-  letter-spacing: 0.035em;
-  margin: 0.22em 0 0;
+
+/* ---- the ledger: an open book along the bottom of the window --------------- */
+/* Everything on a page sits on ruled lines of one height, `--line`. The book
+   is eight lines tall and grows by whole lines when the left page needs more,
+   so no state has to cut its text. */
+.desk {
+  position: absolute;
+  left: calc(64 * var(--u));
+  right: calc(64 * var(--u));
+  bottom: 0;
+  max-height: calc(100% - 96 * var(--u));
+  display: flex;
+  flex-direction: column;
+  /* The book lies over the slip, and both stay under a dialog. */
+  isolation: isolate;
+}
+.book {
+  position: relative;
+  z-index: 1;
+  flex: 0 1 auto;
+  /* Eight lines, the padding above and below them, and the top edge. */
+  min-height: calc(8 * var(--line) + 28 * var(--u) + 1px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  box-shadow: 0 calc(-18 * var(--u)) calc(50 * var(--u)) rgb(0 0 0 / 0.55);
+}
+.pg {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(20 * var(--u)) calc(36 * var(--u)) 0;
+  background-color: var(--l-page);
+  border-top: 1px solid var(--l-page-edge);
+}
+.pg.l,
+.rows {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 calc(var(--line) - 1px),
+    var(--l-rule) calc(var(--line) - 1px) var(--line)
+  );
+  background-attachment: local;
+  scrollbar-width: thin;
+  scrollbar-color: var(--l-page-edge) transparent;
+}
+.pg.l {
+  padding-bottom: calc(8 * var(--u));
+  background-origin: content-box;
+  background-clip: border-box;
+  border-left: 1px solid var(--l-page-edge);
+  box-shadow: inset calc(-34 * var(--u)) 0 calc(30 * var(--u)) calc(-22 * var(--u)) rgb(0 0 0 / 0.6);
+  /* Only when a state needs more lines than the window has. */
+  overflow-y: auto;
+}
+.pg.r {
+  border-right: 1px solid var(--l-page-edge);
+  border-left: 1px solid var(--l-spine);
+  box-shadow: inset calc(34 * var(--u)) 0 calc(30 * var(--u)) calc(-22 * var(--u)) rgb(0 0 0 / 0.6);
+}
+
+/* The head of a page: what it is, and a fact on the right. */
+.ph {
+  flex: none;
+  height: var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: calc(16 * var(--u));
+  font: 600 calc(12 * var(--u)) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--l-dim);
+}
+.ph > span:first-child {
+  color: var(--l-crystal);
+}
+
+/* The status sentence, or the notice that stands in its place. */
+.st {
+  margin: 0;
+  font: italic 500 calc(21 * var(--u)) / var(--line) var(--font-serif);
+}
+/* Smaller than the letters and on their baseline, so it never makes its
+   line taller than a ruled line. */
+.st .ico {
+  display: inline-block;
+  position: relative;
+  top: 0.1em;
+  width: 0.8em;
+  height: 0.8em;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  color: var(--l-dim);
+}
+.notice.warn .st .ico {
+  color: var(--l-amber);
+}
+.notice .detail {
+  min-height: var(--line);
+  align-content: center;
+  font: 400 calc(13 * var(--u)) / calc(var(--line) / 2) var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* The action line. Two layers: the outline, and the amber ink over it. */
+.act {
+  position: relative;
+  flex: none;
+  display: block;
+  width: 100%;
+  height: calc(2 * var(--line) - 8 * var(--u));
+  margin-top: calc(8 * var(--u));
+}
+.a-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  padding: 0 calc(20 * var(--u));
   white-space: nowrap;
 }
-.w-tag {
-  font-size: 1.25em;
-  margin: 0.5em 0 0;
+.a-in.base {
+  border: 1.5px solid var(--l-amber);
+  color: var(--l-amber);
+  background: var(--l-deep);
 }
-.pill {
+.a-in.fill {
+  background: var(--l-amber);
+  color: var(--l-amber-ink);
+}
+.a-in .gem {
+  background: currentColor;
+}
+.a-in b {
+  font-size: calc(25 * var(--u));
+  font-weight: 700;
+}
+.a-in .dots {
+  flex: 1;
+  min-width: calc(12 * var(--u));
+  border-bottom: 2px dotted currentColor;
+  opacity: 0.45;
+  transform: translateY(calc(6 * var(--u)));
+}
+.a-in .v {
+  font: 600 calc(16 * var(--u)) / 1 var(--font-mono);
+}
+.act.off .base {
+  border: 1.5px dashed var(--l-edge);
+  color: var(--l-dim);
+}
+.act:not(:disabled):hover .fill {
+  filter: brightness(1.08);
+}
+/* The ink runs to the new percentage. With reduced motion it is there at once. */
+@media (prefers-reduced-motion: no-preference) {
+  .act.busy .fill {
+    transition: clip-path 0.4s ease-out;
+  }
+}
+
+/* A line under the action: the second action, what can be done about a
+   notice, and the state in a few words. It wraps into more lines. */
+.ex {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: calc(22 * var(--u));
+  font-size: calc(16 * var(--u));
+  color: var(--l-dim);
+}
+.ex > * {
+  height: var(--line);
   display: inline-flex;
   align-items: center;
-  gap: 0.6em;
-  margin-top: 1.5em;
-  padding: 0.5em 1.1em 0.5em 0.9em;
-  border-radius: 99em;
-  background: var(--l-deep);
-  border: 1px solid var(--l-slate);
-  font-family: var(--font-mono);
-  font-size: 1.05em;
   white-space: nowrap;
 }
+.ex .mono {
+  font-size: calc(14 * var(--u));
+}
+.pill {
+  gap: calc(8 * var(--u));
+  font: 400 calc(14 * var(--u)) / 1 var(--font-mono);
+}
 .pill i {
-  width: 0.6em;
-  height: 0.6em;
-  border-radius: 50%;
-  background: var(--l-crystal);
   display: block;
   flex: none;
+  width: calc(7 * var(--u));
+  height: calc(7 * var(--u));
+  border-radius: 50%;
+  background: var(--l-crystal);
 }
 .pill .ico {
-  width: 1.2em;
-  height: 1.2em;
-}
-.pill.warn {
-  border-color: var(--l-amber);
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
 }
 .pill.warn .ico {
   color: var(--l-amber);
 }
-.pill.quiet .ico {
-  color: var(--l-dim);
-}
-
-/* ---- left column: notice line, highlight card, tabs ----------------------- */
-.w-col {
-  position: absolute;
-  left: 2.8em;
-  bottom: 1.6em;
-  width: 33em;
-  display: grid;
-  gap: 1.1em;
-}
-.notice {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.4em 0.8em;
-  align-items: start;
-  padding: 0.9em 1.1em;
-  border-radius: 0.9em;
-  background: var(--l-deep);
-  border: 1px solid var(--l-slate);
-}
-.notice .ico {
-  color: var(--l-dim);
-  margin-top: 0.1em;
-}
-.notice p {
-  font-size: 1.08em;
-  margin: 0;
-}
-.notice .dim {
-  color: var(--l-dim);
-}
-.notice .detail {
-  grid-column: 2;
-  font-family: var(--font-mono);
-  font-size: 0.9em;
+.lnk {
   color: var(--l-moon);
-  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: var(--l-amber);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: calc(4 * var(--u));
+  border-radius: calc(2 * var(--u));
+  white-space: nowrap;
+  letter-spacing: inherit;
+  text-transform: inherit;
 }
-.notice.warn {
-  border-color: var(--l-amber);
-  background: var(--l-ember);
-}
-.notice.warn .ico {
+.lnk:not(:disabled):hover {
   color: var(--l-amber);
 }
-.notice .acts {
-  grid-column: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4em 1.4em;
-  font-size: 1.05em;
+.lnk.teal,
+.slip .lnk {
+  text-decoration-color: var(--l-crystal);
 }
-.lnk {
+.lnk.teal:not(:disabled):hover,
+.slip .lnk:hover {
   color: var(--l-crystal);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  border-radius: 0.2em;
 }
-.lnk:hover {
-  color: var(--l-moon);
+.lnk:disabled {
+  color: var(--l-dim);
+  text-decoration-style: dashed;
 }
 .steps {
+  flex: none;
+  height: var(--line);
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3em 1.1em;
-  font-size: 1.02em;
-  color: var(--l-dim);
-  padding: 0.7em 1.1em;
-  border-radius: 0.9em;
-  background: var(--l-deep);
-  border: 1px solid var(--l-slate);
+  align-items: center;
+  gap: calc(22 * var(--u));
   margin: 0;
+  padding: 0;
   list-style: none;
+  font: 400 calc(14 * var(--u)) / 1 var(--font-mono);
+  white-space: nowrap;
+  color: var(--l-faint);
 }
 .steps li {
   display: inline-flex;
-  gap: 0.4em;
   align-items: center;
+  gap: calc(6 * var(--u));
+}
+.steps .ico {
+  width: calc(14 * var(--u));
+  height: calc(14 * var(--u));
 }
 .steps .done {
-  color: var(--l-moon);
+  color: var(--l-dim);
 }
 .steps .done .ico {
   color: var(--l-crystal);
 }
 .steps .now {
-  color: var(--l-moon);
-  font-weight: 700;
-}
-.steps .now .ico {
   color: var(--l-amber);
+  font-weight: 600;
 }
-.steps .ico {
-  width: 1.15em;
-  height: 1.15em;
+/* A note in the margin: a notice of the author, or an older one of this computer. */
+.note {
+  margin: 0;
+  font-size: calc(15 * var(--u));
+  line-height: var(--line);
 }
-
-.hl {
-  position: relative;
-  height: 8em;
-  border-radius: 1em;
-  overflow: hidden;
-  border: 1px solid var(--l-slate);
-  background: var(--l-raised);
-  display: block;
-  width: 100%;
-}
-.hl:hover {
-  border-color: var(--l-edge);
-}
-.hl svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.hl-text {
-  position: absolute;
-  left: 1.2em;
-  top: 1.7em;
-  right: 7.4em;
-  display: grid;
-  gap: 0.25em;
-}
-.hl-text .k {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
+.note b {
+  margin-right: calc(6 * var(--u));
+  font: 600 calc(12 * var(--u)) / 1 var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--l-amber);
 }
-.hl-text .h {
-  font-size: 1.45em;
-  font-weight: 700;
-  line-height: 1.15;
+.pf {
+  flex: none;
+  margin-top: auto;
+  height: var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: calc(15 * var(--u));
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.hl-text .d {
-  font-size: 0.95em;
   color: var(--l-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+.pf > span:first-child {
+  display: flex;
+  gap: calc(22 * var(--u));
+}
+.pf .mono {
+  font-size: calc(13 * var(--u));
 }
 
-.tabs {
-  border-radius: 1em;
-  border: 1px solid var(--l-slate);
-  background: var(--l-deep);
-  padding: 0.8em 0.6em 0.5em;
-}
-.tabs-row {
-  display: flex;
-  gap: 0.4em;
-  align-items: center;
-  padding: 0 0.5em 0.7em;
-  border-bottom: 1px solid var(--l-slate);
-}
-.tab {
-  font-size: 1.1em;
-  font-weight: 600;
-  padding: 0.35em 0.9em;
-  border-radius: 0.55em;
-  display: inline-flex;
-  gap: 0.5em;
-  align-items: center;
-}
-.tab:hover {
-  background: var(--l-raised);
-}
-.tab[aria-selected='true'] {
-  background: var(--l-amber);
-  color: var(--l-amber-ink);
-  font-weight: 700;
-}
-.tab b {
-  font-family: var(--font-mono);
-  font-size: 0.82em;
-  padding: 0 0.45em;
-  border-radius: 99em;
-  background: var(--l-amber);
-  color: var(--l-amber-ink);
-}
-.tab[aria-selected='true'] b {
-  background: var(--l-amber-ink);
-  color: var(--l-amber);
-}
-.tab-panel {
-  height: 10.6em;
+/* The right page: one release a line. The list scrolls and takes its ruled
+   lines along. Its scrollbar stands in the margin of the page. */
+.rows {
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
-  padding-top: 0.3em;
-  scrollbar-width: thin;
-  scrollbar-color: var(--l-slate) transparent;
+  margin-right: calc(-28 * var(--u));
+  padding-right: calc(28 * var(--u));
+  background-origin: content-box;
 }
-.rel {
-  display: grid;
-  grid-template-columns: 4.6em minmax(0, 1fr) auto;
-  gap: 0.6em;
-  align-items: baseline;
-  padding: 0.52em 0.9em;
+.row {
   width: 100%;
-  border-radius: 0.5em;
+  height: var(--line);
+  margin: 0;
+  display: grid;
+  grid-template-columns: calc(52 * var(--u)) calc(62 * var(--u)) minmax(0, 1fr) auto;
+  align-items: center;
+  color: var(--l-dim);
 }
-button.rel:hover {
-  background: var(--l-raised);
+.row .d {
+  font: 400 calc(13 * var(--u)) / 1 var(--font-mono);
+  color: var(--l-faint);
 }
-.rel .v {
-  font-family: var(--font-mono);
-  font-size: 0.92em;
+.row .v {
+  font: 600 calc(14 * var(--u)) / 1 var(--font-mono);
   color: var(--l-amber);
 }
-.rel .t {
-  font-size: 1.08em;
+.row .t {
+  font: 500 calc(20 * var(--u)) / var(--line) var(--font-serif);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rel .d {
-  font-family: var(--font-mono);
-  font-size: 0.88em;
+.row.new .t,
+button.row:hover .t {
+  color: var(--l-moon);
+}
+.row.new .t .dim {
   color: var(--l-dim);
 }
-.post {
-  padding: 0.5em 0.9em;
-  display: grid;
-  gap: 0.15em;
+/* A release that is found and not installed yet: teal, and the word says so. */
+.row.wait .v,
+.row .w {
+  color: var(--l-crystal);
 }
-.post b {
-  font-size: 1.08em;
+.row .w {
+  padding-left: calc(12 * var(--u));
+  font: 600 calc(12 * var(--u)) / 1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
-.post span {
+button.row:focus-visible {
+  outline-offset: -2px;
+}
+/* A news post: its date and headline on a line, its text under it, in full. */
+.post .row {
+  height: auto;
+  min-height: var(--line);
+  grid-template-columns: calc(52 * var(--u)) minmax(0, 1fr);
+}
+.post .row .t {
+  white-space: normal;
+}
+.post p {
+  margin: 0 0 0 calc(52 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(var(--line) / 2);
   color: var(--l-dim);
-  font-size: 0.98em;
-}
-.post .k {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  color: var(--l-amber);
 }
 .empty {
-  padding: 0.9em;
-  color: var(--l-dim);
-  font-size: 1.02em;
   margin: 0;
+  font: italic 500 calc(20 * var(--u)) / var(--line) var(--font-serif);
+  color: var(--l-dim);
 }
 
-/* ---- bottom right: small buttons and the main button ---------------------- */
-.w-cta {
+/* ---- the slip: a newer launcher, on paper that sticks out of the book ------ */
+.slip {
   position: absolute;
-  right: 1.6em;
-  bottom: 1.6em;
+  left: calc(54 * var(--u));
+  bottom: calc(100% - 36 * var(--u));
+  width: calc(500 * var(--u));
+  padding: calc(12 * var(--u)) calc(18 * var(--u)) calc(48 * var(--u));
   display: flex;
-  gap: 0.9em;
-  align-items: flex-end;
+  align-items: baseline;
+  gap: calc(12 * var(--u));
+  font-size: calc(15 * var(--u));
+  background: var(--l-slip);
+  border-top: 2px solid var(--l-crystal);
+  transform: rotate(-1.2deg);
+  box-shadow: 0 calc(-6 * var(--u)) calc(18 * var(--u)) rgb(0 0 0 / 0.5);
 }
-.ibtn {
-  width: 3.8em;
-  height: 3.8em;
-  border-radius: 0.9em;
-  display: grid;
-  place-items: center;
-  background: var(--l-deep);
-  border: 1px solid var(--l-slate);
+.slip p {
+  flex: 1;
+  margin: 0;
 }
-.ibtn:hover {
-  border-color: var(--l-edge);
-  background: var(--l-raised);
+.slip .ico {
+  align-self: flex-start;
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  margin-top: calc(2 * var(--u));
+  color: var(--l-crystal);
 }
-.ibtn .ico {
-  width: 1.6em;
-  height: 1.6em;
+.slip.warn {
+  border-top-color: var(--l-amber);
 }
-.cta {
-  position: relative;
-  overflow: hidden;
-  min-width: 14.6em;
-  height: 4.4em;
-  border-radius: 1em;
-  padding: 0 1.4em 0 0.8em;
-  display: flex;
-  align-items: center;
-  gap: 0.9em;
-  background: var(--l-amber);
-  color: var(--l-amber-ink);
-  border: 1px solid var(--l-amber);
-}
-.cta:not(:disabled):hover {
-  filter: brightness(1.08);
-}
-.cta .sq {
-  width: 2.8em;
-  height: 2.8em;
-  border-radius: 0.7em;
-  display: grid;
-  place-items: center;
-  flex: none;
-  background: var(--l-amber-ink);
+.slip.warn .ico {
   color: var(--l-amber);
 }
-.cta .sq .ico {
-  width: 1.4em;
-  height: 1.4em;
+@media (prefers-reduced-motion: no-preference) {
+  .slip {
+    animation: slip-out 0.35s ease-out;
+  }
 }
-.cta .l {
-  display: grid;
-  line-height: 1.15;
-  white-space: nowrap;
+@keyframes slip-out {
+  from {
+    translate: 0 calc(30 * var(--u));
+  }
 }
-.cta .l b {
-  font-size: 1.5em;
-  font-weight: 700;
-}
-.cta .l span {
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-}
-.cta.busy {
-  background: var(--l-raised);
-  color: var(--l-moon);
-  border-color: var(--l-edge);
-}
-.cta.busy .sq {
-  background: var(--l-slate);
-  color: var(--l-amber);
-}
-.cta.busy .bar {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 0.35em;
-  background: var(--l-amber);
-  transition: width 0.2s linear;
-}
-.cta.off {
-  background: var(--l-raised);
-  color: var(--l-dim);
-  border: 1px dashed var(--l-edge);
-}
-.cta.off .sq {
-  background: var(--l-slate);
-  color: var(--l-dim);
-}
+
+/* The buttons of the dialogs. */
 .sbtn {
   height: 3.2em;
   padding: 0 1.1em;
@@ -687,68 +700,13 @@ button.rel:hover {
   width: 1.3em;
   height: 1.3em;
 }
-/* Disabled the way the main button is: dimmed text and a dashed edge. */
+/* Disabled: dimmed text and a dashed edge. */
 .sbtn:disabled {
   color: var(--l-dim);
   border-style: dashed;
 }
 .sbtn:disabled:hover {
   background: var(--l-deep);
-}
-
-/* ---- toast: a newer launcher, top right under the window buttons ---------- */
-.toast {
-  position: absolute;
-  right: 1.6em;
-  top: 3.8em;
-  width: 27em;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  border-color: var(--l-edge);
-}
-.toast > .ico {
-  color: var(--l-amber);
-}
-.toast .sbtn .ico {
-  color: inherit;
-  margin: 0;
-}
-.toast .acts {
-  margin-top: 0.3em;
-}
-.toast .sbtn {
-  height: 2.6em;
-  font-size: 1em;
-}
-.t-x {
-  width: 2em;
-  height: 2em;
-  margin: -0.3em -0.4em 0 0;
-  border-radius: 0.5em;
-  display: grid;
-  place-items: center;
-}
-.t-x:hover {
-  background: var(--l-slate);
-}
-.toast .t-x .ico {
-  width: 1.1em;
-  height: 1.1em;
-  margin: 0;
-  color: var(--l-dim);
-}
-.toast .t-x:hover .ico {
-  color: var(--l-moon);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .toast {
-    animation: toast-in 0.25s ease-out;
-  }
-}
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    translate: 0 -0.6em;
-  }
 }
 
 /* ---- modals --------------------------------------------------------------- */

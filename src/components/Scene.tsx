@@ -1,47 +1,12 @@
 // The window background: a loop recorded from the game itself, the high glide
-// over the maze (tools/record_launcher_loop.py writes both files), under a dark
-// scrim that keeps the text readable. The gradients below are what is left of
-// the drawn scene: the highlight card still paints with them.
+// over the maze (tools/record_launcher_loop.py writes both files). It runs
+// clear above the ledger: the only scrims are a short one along the top, under
+// the caption and the window buttons, and one that meets the book.
 
 import { listen } from '@tauri-apps/api/event';
 import { useEffect, useRef } from 'react';
 import loop from '../assets/menu-loop.mp4';
 import poster from '../assets/menu-poster.jpg';
-
-/** Gradients of the highlight card. Rendered once. */
-export function SceneDefs() {
-  return (
-    <svg className="defs" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" className="st-sky-a" />
-          <stop offset="0.6" className="st-sky-b" />
-        </linearGradient>
-        <linearGradient id="g-wall-r" x1="1" y1="0" x2="0" y2="0">
-          <stop offset="0" className="st-stone" />
-          <stop offset="1" className="st-stone-lit" />
-        </linearGradient>
-        <linearGradient id="g-floor" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0" className="st-floor" />
-          <stop offset="1" className="st-floor-lit" />
-        </linearGradient>
-        <radialGradient id="g-warm">
-          <stop offset="0" className="st-warm" />
-          <stop offset="1" className="st-warm-0" />
-        </radialGradient>
-        <radialGradient id="g-cry">
-          <stop offset="0" className="st-cry" />
-          <stop offset="1" className="st-cry-0" />
-        </radialGradient>
-        <linearGradient id="g-left" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" className="st-night" />
-          <stop offset="0.36" className="st-night-mid" />
-          <stop offset="0.64" className="st-night-0" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
 
 /**
  * The full window background. The poster is the first frame of the loop: it is
