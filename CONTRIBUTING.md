@@ -12,7 +12,8 @@ I may rewrite a pull request, ask you to shrink it, or decline it. This is not a
 
 ## What is not open to pull requests
 
-- **The window's art, the background video and the texts.** They are mine and stay all rights reserved (see `LICENSE`). A wrong spelling or a broken sentence is a fine bug report.
+- **The background video, the poster and the icons.** They are mine and stay all rights reserved (see `LICENSE`).
+- **The wording of the window.** I write the texts myself. A wrong spelling or a broken sentence is a fine bug report.
 - **The signing keys, the update address, the manifest format and the release workflow.** The updater keys and the update address are compiled into every installed launcher and cannot be changed from outside. If you think something there is wrong, report it (privately, if it is a security problem: see [SECURITY.md](SECURITY.md)). In files, this means `.github/workflows/`, `dev-keys/`, `docs/contract.md`, `crates/core/src/signature.rs`, `src-tauri/src/updater.rs`, the `plugins.updater` part of `src-tauri/tauri.conf.json` and the release scripts that the game repository uses.
 
 ## Set up

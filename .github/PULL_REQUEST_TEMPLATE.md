@@ -11,4 +11,4 @@
 - [ ] `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings` and `cargo test --workspace` are green.
 - [ ] If I changed a command, a type it returns or an event: I regenerated `src/bindings.ts` with `UPDATE_BINDINGS=1 cargo test -p night-maze-launcher`, committed it, and `pnpm bindings` passes.
 - [ ] The change is small and plain, and each commit is `type(scope): summary` with one logical change.
-- [ ] It does not touch the signing keys, the update address, the manifest format or the release workflow, and not the window's art, video or texts.
+- [ ] It does not touch the signing keys, the update address, the manifest format or the release workflow, and not the video, the poster, the icons or the wording of the window.
