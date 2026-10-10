@@ -1,0 +1,60 @@
+name: Install or update problem
+description: The installer, the first download of the game, a game update, the launcher updating itself, or the game not starting from the launcher.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The installer is not signed with a paid certificate, so Windows shows "Windows protected your PC". That is expected and not a bug. Click "More info", then "Run anyway".
+
+        For a problem with how the window looks or behaves, use the "Bug in the launcher window" form instead. For a bug inside the game, use the [game repository](https://github.com/Shironex/night-maze/issues/new/choose).
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where it goes wrong
+      options:
+        - The installer of the launcher does not run or does not finish
+        - The first download of the game (Install) fails
+        - A game update fails or stops
+        - The launcher says a download or an update was refused (checksum, signature, archive)
+        - The launcher says a version did not start and went back to the one before
+        - The game does not start when I click Launch
+        - The launcher cannot update itself
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: message
+    attributes:
+      label: The exact text the window shows
+      description: Copy it, or type it as it is. For example "The download does not match its checksum, so it was not installed" or "Could not check for updates". Write "nothing" if the window shows no message.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: The launcher version is under Settings, About. The game version is on the Launch button, or "not installed". Add your Windows version.
+      placeholder: launcher 0.1.7, game 0.14.0, Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: launcher.log
+      description: |
+        Optional, but it helps a lot. The launcher writes one line for each thing it does to `launcher.log`, on your computer only. It is in the install folder, `%LOCALAPPDATA%\NightMaze\` (Settings, Downloads & updates, "Install folder", "Open"). Paste the last lines here.
+        It can show file paths that contain your Windows user name. Remove it if you mind.
+      render: text
+  - type: textarea
+    id: state
+    attributes:
+      label: What is in the install folder
+      description: |
+        Optional. The names of the folders inside `versions\` and whether `state.json` is there. I may ask for `state.json` later. It holds version numbers, the "check for updates on start" setting and the notices the launcher wrote. It holds no password or account data. A notice can quote one error line of the game log, which can contain a file path.
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Optional. What you did before it happened, antivirus software, a slow or unstable connection.
