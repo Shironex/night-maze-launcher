@@ -1,0 +1,41 @@
+name: Bug in the launcher window
+description: Something in the launcher window looks or behaves wrong.
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for the window itself: a button that does nothing, a text that is wrong or cut off, a layout that breaks.
+        If the installer, the download of the game, an update or the start of the game fails, use the "Install or update problem" form instead.
+        If the game runs but something in the game is wrong, report it in the [game repository](https://github.com/Shironex/night-maze/issues/new/choose).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you see, and what you expected to see instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      description: The clicks, in order, starting from a fresh start of the launcher.
+      placeholder: |
+        1. Open the launcher
+        2. Click Settings
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: The launcher version is under Settings, About. The game version is on the Launch button. Add your Windows version.
+      placeholder: launcher 0.1.7, game 0.14.0, Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Optional. Drag an image into this box. It helps most when the problem is how something looks.
