@@ -10,7 +10,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/Shironex/night-maze-launcher/ci.yml?branch=main&style=flat&label=ci)](https://github.com/Shironex/night-maze-launcher/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-56d6ca?style=flat)](LICENSE)
 
-[Download](https://github.com/Shironex/night-maze-launcher/releases/latest) · [The game](https://github.com/Shironex/night-maze) · [Docs](docs/development.md) · [Changelog](CHANGELOG.md)
+[Download](https://github.com/Shironex/night-maze-launcher/releases/latest) · [Website](https://shironex.github.io/night-maze/) · [The game](https://github.com/Shironex/night-maze) · [Docs](docs/development.md) · [Changelog](CHANGELOG.md)
 
 > For friends who want to play Night Maze without building it. They install the launcher once, and it downloads the game, keeps the game and itself up to date, and starts it.
 
@@ -153,6 +153,10 @@ Chromium has to be downloaded once: `pnpm exec playwright install chromium`. I h
 ## Releases
 
 A release starts with a tag `vX.Y.Z`. The workflow builds the installer, waits for my approval before it signs it, checks the signature, and publishes the installer with `latest.json`, the file installed launchers read. One release has been made this way so far, 0.1.2: GitHub Actions built and signed it after my approval, and I did the last publish step by hand, because the workflow looked for its draft before GitHub listed it. That lookup tries again now. The steps, and what to do when one fails, are in [docs/development.md](docs/development.md#releasing). What changed in each version is in the [changelog](CHANGELOG.md).
+
+## Contributing
+
+Reports are welcome: the [issue forms](https://github.com/Shironex/night-maze-launcher/issues/new/choose) cover the window and install or update problems. Ideas and questions go to the [Discussions of the game](https://github.com/Shironex/night-maze/discussions), so there is one place to look. For a code fix, open an issue first. [CONTRIBUTING.md](CONTRIBUTING.md) has the details, and [SECURITY.md](SECURITY.md) says where a vulnerability goes.
 
 ## Licence
 
