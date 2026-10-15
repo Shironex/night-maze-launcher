@@ -2,6 +2,12 @@
 
 What changed in each release of the launcher, newest first. The release workflow copies the section of the released version into the notes of the GitHub release and into `latest.json`, where the launcher shows it as plain text before it updates itself. A version without a section here is not released.
 
+## 0.1.8 (2026-10-15)
+
+The background follows game 0.16.0.
+
+- The loop behind the window is recorded again from game 0.16.0: the new stone of the walls, the rebuilt gatehouse with its oak door and lanterns, and the new splinters of the moon.
+
 ## 0.1.7 (2026-10-09)
 
 The background follows game 0.14.0.
